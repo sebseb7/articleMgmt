@@ -56,6 +56,11 @@ export const theme = createTheme({
         },
       },
     },
+    MuiDialog: {
+      defaultProps: {
+        transitionDuration: 0,
+      },
+    },
     MuiPopover: {
       defaultProps: {
         disableScrollLock: true,

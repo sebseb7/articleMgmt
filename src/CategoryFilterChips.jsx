@@ -17,16 +17,25 @@ export default class CategoryFilterChips extends Component {
             <Chip
               key={String(filterKey)}
               size="small"
+              variant="filled"
               label={`${cat.name} (${cat.count})`}
               color={active ? 'primary' : 'default'}
-              variant={active ? 'filled' : 'outlined'}
               onClick={() => (
                 active
                   ? onRemoveCategoryFilter(filterKey)
                   : onAddCategoryFilter(filterKey)
               )}
-              onDelete={active ? () => onRemoveCategoryFilter(filterKey) : undefined}
+              onDelete={() => {
+                if (active) onRemoveCategoryFilter(filterKey);
+              }}
               deleteIcon={<DeleteIcon />}
+              sx={{
+                transition: 'none',
+                '& .MuiChip-deleteIcon': {
+                  visibility: active ? 'visible' : 'hidden',
+                  pointerEvents: active ? 'auto' : 'none',
+                },
+              }}
             />
           );
         })}

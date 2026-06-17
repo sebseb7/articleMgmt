@@ -6,7 +6,7 @@ import {
   FormControl, InputLabel, Select, MenuItem, InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
 import { api } from './api.js';
@@ -211,14 +211,14 @@ export default class ArticleDialog extends Component {
           <Typography variant="overline" color="text.secondary">
             Article
           </Typography>
-          <Grid container spacing={2} sx={{ mt: 0 }}>
-            <Grid item xs={12} sm={6}>
+          <Grid container spacing={2} sx={{ mt: 0, width: '100%' }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Item name" fullWidth value={form.item_name} onChange={this.set('item_name')} />
             </Grid>
-            <Grid item xs={6} sm={3}>
+            <Grid size={{ xs: 6, sm: 3 }}>
               <TextField label="Tax rate (%)" type="number" fullWidth value={form.tax_rate} onChange={this.set('tax_rate')} />
             </Grid>
-            <Grid item xs={6} sm={3}>
+            <Grid size={{ xs: 6, sm: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel id="article-category-label">Category</InputLabel>
                 <Select
@@ -243,10 +243,10 @@ export default class ArticleDialog extends Component {
                 </Button>
               )}
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Image URL" fullWidth value={form.image_url} onChange={this.set('image_url')} />
             </Grid>
-            <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <FormControlLabel control={<Switch checked={form.visible_online} onChange={this.setBool('visible_online')} />} label="Visible online" />
               <FormControlLabel control={<Switch checked={form.track_inventory} onChange={this.setBool('track_inventory')} />} label="Track inventory" />
             </Grid>
@@ -260,17 +260,17 @@ export default class ArticleDialog extends Component {
                 Standalone pricing (used because there are no variations)
                 {!hasUuid(form.variant_uuid) && <NewBadge />}
               </Typography>
-              <Grid container spacing={2} sx={{ mt: 0 }}>
-                <Grid item xs={6} sm={3}>
+              <Grid container spacing={2} sx={{ mt: 0, width: '100%' }}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <TextField label="Price" type="number" fullWidth value={form.price} onChange={this.set('price')} />
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <TextField label="Quantity" type="number" fullWidth value={form.quantity} onChange={this.set('quantity')} />
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <TextField label="Low stock" type="number" fullWidth value={form.low_threshold} onChange={this.set('low_threshold')} />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <BarcodeField
                     fullWidth
                     value={form.barcode}

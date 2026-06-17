@@ -164,7 +164,7 @@ class ArticleRow extends Component {
 
 class TableNavigation extends Component {
   render() {
-    const { page, pageSize, total, onPageChange, onPageSizeChange, edge = 'bottom', compact = false } = this.props;
+    const { page, pageSize, total, loading, onPageChange, onPageSizeChange, edge = 'bottom', compact = false } = this.props;
     const borderSx = edge === 'top'
       ? { borderBottom: 1, borderColor: 'divider' }
       : { borderTop: 1, borderColor: 'divider' };
@@ -211,7 +211,7 @@ class TableNavigation extends Component {
           siblingCount={compact ? 0 : 1}
           boundaryCount={compact ? 1 : 1}
           color="primary"
-          disabled={total === 0}
+          disabled={total === 0 || loading}
           size={compact ? 'small' : 'medium'}
           sx={{ alignSelf: compact ? 'center' : { xs: 'center', sm: 'auto' } }}
         />
@@ -240,6 +240,7 @@ class App extends Component {
 
   fileRef = createRef();
   searchRef = createRef();
+  loadSeq = 0;
 
   componentDidMount() {
     this.mediaQueryList = window.matchMedia(mediaQueryString(theme, 'down'));
@@ -334,6 +335,7 @@ class App extends Component {
     nextSearch = this.state.search,
     nextMissingBarcodeOnly = this.state.missingBarcodeOnly,
   ) => {
+    const seq = ++this.loadSeq;
     this.setState({ loading: true });
     try {
       const res = await api.list({
@@ -342,8 +344,9 @@ class App extends Component {
         q: nextSearch,
         missingBarcode: nextMissingBarcodeOnly,
       });
+      if (seq !== this.loadSeq) return;
       if (res.items.length === 0 && res.total > 0 && nextPage > 0) {
-        this.setState({ page: nextPage - 1 });
+        this.setState({ page: nextPage - 1, loading: false });
         return;
       }
       this.setState({
@@ -352,10 +355,11 @@ class App extends Component {
         page: res.page - 1,
         pageSize: res.pageSize,
         stats: res.stats,
+        loading: false,
       });
     } catch (e) {
+      if (seq !== this.loadSeq) return;
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
-    } finally {
       this.setState({ loading: false });
     }
   };
@@ -460,7 +464,7 @@ class App extends Component {
       articles, total, page, pageSize, loading, search, isMobile, missingBarcodeOnly,
     } = this.state;
     const showEmptyState = !loading && total === 0;
-    const showTable = total > 0 || (loading && articles.length > 0);
+    const isInitialLoad = loading && articles.length === 0;
     const tableMinHeight = TABLE_HEADER_HEIGHT + pageSize * TABLE_ROW_HEIGHT;
 
     if (showEmptyState) {
@@ -479,7 +483,7 @@ class App extends Component {
       );
     }
 
-    if (!showTable) {
+    if (isInitialLoad) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 6, minHeight: tableMinHeight + 120 }}>
           <CircularProgress />
@@ -489,26 +493,12 @@ class App extends Component {
 
     return (
       <>
-        {loading && (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              bgcolor: 'rgba(247, 251, 251, 0.72)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1,
-            }}
-          >
-            <CircularProgress />
-          </Box>
-        )}
         <TableNavigation
           edge="top"
           page={page}
           pageSize={pageSize}
           total={total}
+          loading={loading}
           onPageChange={(nextPage) => this.setState({ page: nextPage })}
           onPageSizeChange={this.handlePageSizeChange}
           compact={isMobile}
@@ -551,6 +541,7 @@ class App extends Component {
           page={page}
           pageSize={pageSize}
           total={total}
+          loading={loading}
           onPageChange={(nextPage) => this.setState({ page: nextPage })}
           onPageSizeChange={this.handlePageSizeChange}
           compact={isMobile}

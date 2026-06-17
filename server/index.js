@@ -401,6 +401,33 @@ app.put('/api/articles/:id', requireAuth, (req, res) => {
   }
 });
 
+app.put('/api/articles/:id/barcode', requireAuth, (req, res) => {
+  const articleId = Number(req.params.id);
+  const { barcode, variationId } = req.body || {};
+  const trimmed = String(barcode ?? '').trim();
+  if (!trimmed) {
+    return res.status(400).json({ error: 'Barcode is required.' });
+  }
+
+  const article = db.prepare('SELECT id FROM articles WHERE id = ?').get(articleId);
+  if (!article) {
+    return res.status(404).json({ error: 'Article not found.' });
+  }
+
+  if (variationId != null && variationId !== '') {
+    const info = db.prepare(
+      'UPDATE variations SET barcode = ? WHERE id = ? AND article_id = ?',
+    ).run(trimmed, Number(variationId), articleId);
+    if (info.changes === 0) {
+      return res.status(404).json({ error: 'Variation not found.' });
+    }
+  } else {
+    db.prepare('UPDATE articles SET barcode = ? WHERE id = ?').run(trimmed, articleId);
+  }
+
+  res.json({ ok: true, barcode: trimmed });
+});
+
 app.delete('/api/articles/:id', requireAuth, (req, res) => {
   deleteArticleStmt.run(Number(req.params.id));
   res.json({ ok: true });

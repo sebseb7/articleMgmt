@@ -86,6 +86,14 @@ export const api = {
       body: JSON.stringify(article),
     }).then(json),
 
+  assignBarcode: (id, { barcode, variationId } = {}) =>
+    fetch(`/api/articles/${id}/barcode`, {
+      method: 'PUT',
+      ...credentials,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ barcode, variationId }),
+    }).then(json),
+
   remove: (id) => fetch(`/api/articles/${id}`, { method: 'DELETE', ...credentials }).then(json),
 
   import: (csvText) =>

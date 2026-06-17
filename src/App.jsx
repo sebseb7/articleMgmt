@@ -20,6 +20,7 @@ import ArticleDialog from './ArticleDialog.jsx';
 import CategoryDialog from './CategoryDialog.jsx';
 import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
+import BarcodeAssignButton from './BarcodeAssignButton.jsx';
 import { theme } from './theme.js';
 
 const euroFormat = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
@@ -77,7 +78,33 @@ function articleBarcodeLabel(article) {
     return '—';
   }
 
-  return articleBarcode || '—';
+  return articleBarcode || null;
+}
+
+function isBarcodeCapturing(barcodeCapture, articleId, variationId = null) {
+  if (!barcodeCapture) return false;
+  return barcodeCapture.articleId === articleId && barcodeCapture.variationId === variationId;
+}
+
+function renderBarcodeValue(barcode, articleId, variationId, barcodeCapture, barcodeCaptureBuffer, onStartBarcodeCapture) {
+  if (String(barcode ?? '').trim()) {
+    return barcode;
+  }
+
+  const active = isBarcodeCapturing(barcodeCapture, articleId, variationId);
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <BarcodeAssignButton
+        active={active}
+        onStart={() => onStartBarcodeCapture(articleId, variationId)}
+      />
+      {active && barcodeCaptureBuffer && (
+        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+          {barcodeCaptureBuffer}
+        </Typography>
+      )}
+    </Box>
+  );
 }
 
 class ArticleRow extends Component {
@@ -88,7 +115,9 @@ class ArticleRow extends Component {
   };
 
   render() {
-    const { article, onEdit, onDelete } = this.props;
+    const {
+      article, onEdit, onDelete, barcodeCapture, barcodeCaptureBuffer, onStartBarcodeCapture,
+    } = this.props;
     const { open } = this.state;
     const variations = article.variations || [];
     const hasVar = variations.length > 0;
@@ -123,9 +152,18 @@ class ArticleRow extends Component {
             {hasVar ? <Chip size="small" variant="outlined" label={`${variations.length} variations`} /> : money(article.price)}
           </TableCell>
           <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-            {hasVar ? barcodeLabel : (
+            {hasVar ? (
+              barcodeLabel === 'missing' ? 'missing' : '—'
+            ) : (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-start' }}>
-                <span>{article.barcode || '—'}</span>
+                {renderBarcodeValue(
+                  article.barcode,
+                  article.id,
+                  null,
+                  barcodeCapture,
+                  barcodeCaptureBuffer,
+                  onStartBarcodeCapture,
+                )}
                 {!hasUuid(article.variant_uuid) && <NewBadge />}
               </Box>
             )}
@@ -166,7 +204,16 @@ class ArticleRow extends Component {
                           <TableCell align="right">{money(v.price)}</TableCell>
                           <TableCell align="right">{v.quantity ?? '—'}</TableCell>
                           <TableCell align="right">{v.low_threshold ?? '—'}</TableCell>
-                          <TableCell>{v.barcode || '—'}</TableCell>
+                          <TableCell>
+                            {renderBarcodeValue(
+                              v.barcode,
+                              article.id,
+                              v.id,
+                              barcodeCapture,
+                              barcodeCaptureBuffer,
+                              onStartBarcodeCapture,
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -257,6 +304,8 @@ class App extends Component {
     categories: [],
     toast: null,
     isMobile: false,
+    barcodeCapture: null,
+    barcodeCaptureBuffer: '',
   };
 
   fileRef = createRef();
@@ -295,6 +344,15 @@ class App extends Component {
 
     if (prevState.dialog.open && !dialog.open && !this.state.isMobile) {
       this.searchRef.current?.focus({ preventScroll: true });
+    }
+
+    if (
+      (!prevState.dialog.open && dialog.open)
+      || (prevState.dialog.open && !dialog.open)
+      || prevState.page !== page
+      || prevState.search !== search
+    ) {
+      this.cancelBarcodeCapture();
     }
 
     if (prevState.dialog.open !== dialog.open) {
@@ -342,6 +400,64 @@ class App extends Component {
     try {
       const categories = await api.listCategories();
       this.setState({ categories });
+    } catch (e) {
+      if (!this.handleAuthError(e)) this.notify(e.message, 'error');
+    }
+  };
+
+  cancelBarcodeCapture = () => {
+    if (!this.state.barcodeCapture && !this.state.barcodeCaptureBuffer) return;
+    this.setState({ barcodeCapture: null, barcodeCaptureBuffer: '' });
+  };
+
+  startBarcodeCapture = (articleId, variationId = null) => {
+    const { barcodeCapture } = this.state;
+    const sameTarget = barcodeCapture
+      && barcodeCapture.articleId === articleId
+      && barcodeCapture.variationId === variationId;
+    if (sameTarget) {
+      this.cancelBarcodeCapture();
+      return;
+    }
+    this.setState({
+      barcodeCapture: { articleId, variationId },
+      barcodeCaptureBuffer: '',
+    });
+  };
+
+  updateArticleBarcodeInState = (articleId, variationId, barcode) => {
+    this.setState((prev) => ({
+      articles: prev.articles.map((article) => {
+        if (article.id !== articleId) return article;
+        if (variationId != null) {
+          return {
+            ...article,
+            variations: (article.variations || []).map((variation) => (
+              variation.id === variationId ? { ...variation, barcode } : variation
+            )),
+          };
+        }
+        return { ...article, barcode };
+      }),
+    }));
+  };
+
+  commitBarcodeCapture = async () => {
+    const { barcodeCapture, barcodeCaptureBuffer } = this.state;
+    if (!barcodeCapture) return;
+
+    const barcode = barcodeCaptureBuffer.trim();
+    if (!barcode) {
+      this.cancelBarcodeCapture();
+      return;
+    }
+
+    const { articleId, variationId } = barcodeCapture;
+    try {
+      await api.assignBarcode(articleId, { barcode, variationId });
+      this.updateArticleBarcodeInState(articleId, variationId, barcode);
+      this.cancelBarcodeCapture();
+      this.notify('Barcode saved.');
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
     }
@@ -416,6 +532,35 @@ class App extends Component {
       const isEditable =
         tag === 'input' || tag === 'textarea' || target?.isContentEditable;
       const isSearchField = target === this.searchRef.current;
+      const { barcodeCapture } = this.state;
+
+      if (barcodeCapture) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.commitBarcodeCapture();
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          this.cancelBarcodeCapture();
+          return;
+        }
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          this.setState((prev) => ({
+            barcodeCaptureBuffer: prev.barcodeCaptureBuffer.slice(0, -1),
+          }));
+          return;
+        }
+        if (/^\d$/.test(e.key)) {
+          e.preventDefault();
+          this.setState((prev) => ({
+            barcodeCaptureBuffer: prev.barcodeCaptureBuffer + e.key,
+          }));
+          return;
+        }
+        return;
+      }
 
       if (isEditable && !isSearchField) return;
 
@@ -610,6 +755,9 @@ class App extends Component {
                 <ArticleRow
                   key={a.id}
                   article={a}
+                  barcodeCapture={this.state.barcodeCapture}
+                  barcodeCaptureBuffer={this.state.barcodeCaptureBuffer}
+                  onStartBarcodeCapture={this.startBarcodeCapture}
                   onEdit={(art) => this.setState({ dialog: { open: true, initial: art } })}
                   onDelete={this.handleDelete}
                 />

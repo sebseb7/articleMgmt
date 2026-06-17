@@ -24,6 +24,10 @@ export default class Login extends Component {
     e.preventDefault();
     const { username, password } = this.state;
     const { onLogin } = this.props;
+    if (!username.trim() || !password) {
+      this.setState({ error: 'Enter username and password.' });
+      return;
+    }
     this.setState({ error: '', loading: true });
     try {
       const { user } = await api.login(username, password);
@@ -94,7 +98,7 @@ export default class Login extends Component {
             variant="contained"
             fullWidth
             size="large"
-            disabled={loading || !username || !password}
+            disabled={loading}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign in'}
           </Button>

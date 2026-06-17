@@ -164,7 +164,15 @@ const missingBarcodeClause = `
   )
 `;
 
-function buildArticleWhere({ q = '', missingBarcode = false } = {}) {
+function parseCategoryIds(categoryIds) {
+  if (categoryIds == null || categoryIds === '') return [];
+  return String(categoryIds)
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function buildArticleWhere({ q = '', missingBarcode = false, categoryIds } = {}) {
   const parts = [];
   const params = [];
 
@@ -178,8 +186,52 @@ function buildArticleWhere({ q = '', missingBarcode = false } = {}) {
     parts.push(missingBarcodeClause);
   }
 
+  const ids = parseCategoryIds(categoryIds);
+  if (ids.length) {
+    const numericIds = [];
+    let hasNone = false;
+    for (const id of ids) {
+      if (id === 'none') {
+        hasNone = true;
+      } else {
+        numericIds.push(Number(id));
+      }
+    }
+    const categoryParts = [];
+    if (numericIds.length) {
+      categoryParts.push(`a.category_id IN (${numericIds.map(() => '?').join(', ')})`);
+      params.push(...numericIds);
+    }
+    if (hasNone) {
+      categoryParts.push('a.category_id IS NULL');
+    }
+    if (categoryParts.length) {
+      parts.push(`(${categoryParts.join(' OR ')})`);
+    }
+  }
+
   const clause = parts.length ? `WHERE ${parts.join(' AND ')}` : '';
   return { clause, params };
+}
+
+function getCategoryCounts({ q = '', missingBarcode = false } = {}) {
+  const { clause, params } = buildArticleWhere({ q, missingBarcode });
+  const rows = db
+    .prepare(`
+      SELECT a.category_id AS id, c.name AS name, COUNT(*) AS count
+      FROM articles a
+      LEFT JOIN categories c ON c.id = a.category_id
+      ${clause}
+      GROUP BY a.category_id
+      ORDER BY CASE WHEN c.name IS NULL THEN 1 ELSE 0 END, c.name COLLATE NOCASE
+    `)
+    .all(...params);
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name || 'Uncategorized',
+    count: row.count,
+  }));
 }
 
 function getStats() {
@@ -192,8 +244,8 @@ function getStats() {
   return { articles, variations: explicitVars + standalone };
 }
 
-function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = false } = {}) {
-  const { clause, params } = buildArticleWhere({ q, missingBarcode });
+function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = false, categoryIds } = {}) {
+  const { clause, params } = buildArticleWhere({ q, missingBarcode, categoryIds });
   const limit = Math.min(Math.max(1, Number(pageSize) || 25), 100);
   const currentPage = Math.max(1, Number(page) || 1);
   const offset = (currentPage - 1) * limit;
@@ -229,6 +281,7 @@ function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = fal
     pageSize: limit,
     pageCount,
     stats: getStats(),
+    categoryCounts: getCategoryCounts({ q, missingBarcode }),
   };
 }
 
@@ -264,6 +317,7 @@ app.get('/api/articles', requireAuth, (req, res) => {
     pageSize: req.query.pageSize,
     q: req.query.q,
     missingBarcode: req.query.missingBarcode === '1',
+    categoryIds: req.query.categoryIds,
   });
   res.json(result);
 });

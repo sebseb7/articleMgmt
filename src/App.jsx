@@ -38,6 +38,25 @@ function effectiveSearchQuery(query) {
   return compactLength(query) >= MIN_SEARCH_CHARS ? query.trim() : '';
 }
 
+function categoryFilterKey(categoryId) {
+  return categoryId == null ? 'none' : categoryId;
+}
+
+function categoryFiltersEqual(a, b) {
+  if (a.length !== b.length) return false;
+  const left = [...a].map(String).sort();
+  const right = [...b].map(String).sort();
+  return left.every((value, index) => value === right[index]);
+}
+
+function formatCategoryFilterLabel(categoryCounts, categoryFilters) {
+  if (!categoryFilters.length) return '';
+  const names = categoryCounts
+    .filter((cat) => categoryFilters.includes(categoryFilterKey(cat.id)))
+    .map((cat) => cat.name);
+  return names.length ? ` in ${names.join(', ')}` : '';
+}
+
 function mediaQueryString(theme, key) {
   return theme.breakpoints[key]('sm').replace(/^@media\s*/, '');
 }
@@ -230,6 +249,8 @@ class App extends Component {
     loading: true,
     query: '',
     search: '',
+    categoryFilters: [],
+    categoryCounts: [],
     missingBarcodeOnly: false,
     dialog: { open: false, initial: null },
     categoriesOpen: false,
@@ -253,12 +274,13 @@ class App extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { page, pageSize, search, query, dialog, loading } = this.state;
+    const { page, pageSize, search, query, dialog } = this.state;
 
     if (
       prevState.page !== page
       || prevState.pageSize !== pageSize
       || prevState.search !== search
+      || !categoryFiltersEqual(prevState.categoryFilters, this.state.categoryFilters)
       || prevState.missingBarcodeOnly !== this.state.missingBarcodeOnly
     ) {
       this.load(page, pageSize, search);
@@ -271,11 +293,7 @@ class App extends Component {
       }, 250);
     }
 
-    if (
-      (prevState.dialog.open !== dialog.open || prevState.loading !== loading)
-      && !dialog.open
-      && !loading
-    ) {
+    if (prevState.dialog.open && !dialog.open && !this.state.isMobile) {
       this.searchRef.current?.focus({ preventScroll: true });
     }
 
@@ -329,11 +347,26 @@ class App extends Component {
     }
   };
 
+  addCategoryFilter = (filterKey) => {
+    this.setState((prev) => {
+      if (prev.categoryFilters.includes(filterKey)) return null;
+      return { categoryFilters: [...prev.categoryFilters, filterKey], page: 0 };
+    });
+  };
+
+  removeCategoryFilter = (filterKey) => {
+    this.setState((prev) => ({
+      categoryFilters: prev.categoryFilters.filter((key) => key !== filterKey),
+      page: 0,
+    }));
+  };
+
   load = async (
     nextPage = this.state.page,
     nextPageSize = this.state.pageSize,
     nextSearch = this.state.search,
     nextMissingBarcodeOnly = this.state.missingBarcodeOnly,
+    nextCategoryFilters = this.state.categoryFilters,
   ) => {
     const seq = ++this.loadSeq;
     this.setState({ loading: true });
@@ -343,8 +376,18 @@ class App extends Component {
         pageSize: nextPageSize,
         q: nextSearch,
         missingBarcode: nextMissingBarcodeOnly,
+        categoryIds: nextCategoryFilters,
       });
       if (seq !== this.loadSeq) return;
+      const counts = res.categoryCounts ?? [];
+      const validFilters = nextCategoryFilters.filter((filterKey) =>
+        counts.some((cat) => categoryFilterKey(cat.id) === filterKey),
+      );
+      if (!categoryFiltersEqual(validFilters, nextCategoryFilters)) {
+        this.setState({ categoryFilters: validFilters, loading: false });
+        await this.load(nextPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, validFilters);
+        return;
+      }
       if (res.items.length === 0 && res.total > 0 && nextPage > 0) {
         this.setState({ page: nextPage - 1, loading: false });
         return;
@@ -355,6 +398,7 @@ class App extends Component {
         page: res.page - 1,
         pageSize: res.pageSize,
         stats: res.stats,
+        categoryCounts: counts,
         loading: false,
       });
     } catch (e) {
@@ -413,7 +457,7 @@ class App extends Component {
     try {
       const text = await file.text();
       const res = await api.import(text);
-      this.setState({ page: 0, search: '', query: '' });
+      this.setState({ page: 0, search: '', query: '', categoryFilters: [] });
       await this.load(0, pageSize, '');
       await this.loadCategories();
       this.notify(`Imported ${res.articles} articles and ${res.variations} variations.`);
@@ -459,10 +503,43 @@ class App extends Component {
     }
   };
 
+  renderCategoryChips() {
+    const { categoryCounts, categoryFilters } = this.state;
+    if (!categoryCounts.length) return null;
+
+    return (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+        {categoryCounts.map((cat) => {
+          const filterKey = categoryFilterKey(cat.id);
+          const active = categoryFilters.includes(filterKey);
+          return (
+            <Chip
+              key={String(filterKey)}
+              size="small"
+              label={`${cat.name} (${cat.count})`}
+              color={active ? 'primary' : 'default'}
+              variant={active ? 'filled' : 'outlined'}
+              onClick={() => (
+                active
+                  ? this.removeCategoryFilter(filterKey)
+                  : this.addCategoryFilter(filterKey)
+              )}
+              onDelete={active ? () => this.removeCategoryFilter(filterKey) : undefined}
+              deleteIcon={<DeleteIcon />}
+            />
+          );
+        })}
+      </Box>
+    );
+  }
+
   renderArticlesPaper() {
     const {
       articles, total, page, pageSize, loading, search, isMobile, missingBarcodeOnly,
+      categoryFilters, categoryCounts,
     } = this.state;
+    const categoryLabel = formatCategoryFilterLabel(categoryCounts, categoryFilters);
+    const hasCategoryFilter = categoryFilters.length > 0;
     const showEmptyState = !loading && total === 0;
     const isInitialLoad = loading && articles.length === 0;
     const tableMinHeight = TABLE_HEADER_HEIGHT + pageSize * TABLE_ROW_HEIGHT;
@@ -473,11 +550,15 @@ class App extends Component {
           <Typography>
             {missingBarcodeOnly
               ? (search
-                ? `No articles with missing barcodes match "${search}".`
-                : 'No articles with missing barcodes.')
+                ? `No articles with missing barcodes match "${search}"${categoryLabel}.`
+                : (hasCategoryFilter
+                  ? `No articles with missing barcodes${categoryLabel}.`
+                  : 'No articles with missing barcodes.'))
               : (search
-                ? `No articles match "${search}".`
-                : 'No articles. Import a CSV or create one.')}
+                ? `No articles match "${search}"${categoryLabel}.`
+                : (hasCategoryFilter
+                  ? `No articles${categoryLabel}.`
+                  : 'No articles. Import a CSV or create one.'))}
           </Typography>
         </Box>
       );
@@ -629,25 +710,25 @@ class App extends Component {
         </AppBar>
 
         <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 3 } }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'stretch', sm: 'center' },
-              gap: 2,
-              mb: 2,
-            }}
-          >
+          <Box sx={{ mb: 2 }}>
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                flexGrow: 1,
-                width: '100%',
-                maxWidth: { xs: 'none', sm: 560 },
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: 2,
               }}
             >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  flexGrow: 1,
+                  width: '100%',
+                  maxWidth: { xs: 'none', sm: 560 },
+                }}
+              >
               <TextField
                 inputRef={this.searchRef}
                 size="small"
@@ -722,6 +803,8 @@ class App extends Component {
                 {isMobile ? 'New' : 'New article'}
               </Button>
             </Box>
+            </Box>
+            {this.renderCategoryChips()}
           </Box>
 
           <Paper variant="outlined" sx={{ position: 'relative' }}>

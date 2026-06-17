@@ -20,7 +20,13 @@ import {
   deleteCategoryById,
   clearCategories,
 } from './categories.js';
-import { allocateNextLocalBarcode } from './metadata.js';
+import { allocateNextLocalBarcode, bumpLocalBarcodeMaxFromBarcodes } from './metadata.js';
+import {
+  collectBarcodesFromParsedArticles,
+  assertNoDuplicateBarcodes,
+  validateArticlePayloadBarcodes,
+  validateAssignBarcode,
+} from './barcodes.js';
 import { startBackupScheduler, backupDatabase } from './backup.js';
 
 const app = express();
@@ -380,6 +386,11 @@ app.delete('/api/categories/:id', requireAuth, (req, res) => {
 });
 
 app.post('/api/articles', requireAuth, (req, res) => {
+  try {
+    validateArticlePayloadBarcodes(req.body);
+  } catch (e) {
+    return res.status(400).json({ error: String(e.message) });
+  }
   const nextOrder = maxOrderStmt.get().m + 1;
   const tx = db.transaction(() => {
     const info = insertArticle.run(articlePayload(req.body, nextOrder));
@@ -399,6 +410,11 @@ app.post('/api/articles', requireAuth, (req, res) => {
 
 app.put('/api/articles/:id', requireAuth, (req, res) => {
   const id = Number(req.params.id);
+  try {
+    validateArticlePayloadBarcodes(req.body, id);
+  } catch (e) {
+    return res.status(400).json({ error: String(e.message) });
+  }
   const tx = db.transaction(() => {
     updateArticle.run({ ...articlePayload(req.body, 0), id });
     deleteVariationsFor.run(id);
@@ -422,6 +438,12 @@ app.put('/api/articles/:id/barcode', requireAuth, (req, res) => {
   const article = db.prepare('SELECT id FROM articles WHERE id = ?').get(articleId);
   if (!article) {
     return res.status(404).json({ error: 'Article not found.' });
+  }
+
+  try {
+    validateAssignBarcode(value, articleId, variationId ?? null);
+  } catch (e) {
+    return res.status(400).json({ error: String(e.message) });
   }
 
   if (variationId != null && variationId !== '') {
@@ -472,6 +494,14 @@ app.post('/api/import', requireAuth, (req, res) => {
   } catch (e) {
     return res.status(400).json({ error: `Failed to parse CSV: ${e.message}` });
   }
+
+  const importedBarcodes = collectBarcodesFromParsedArticles(articles);
+  try {
+    assertNoDuplicateBarcodes(importedBarcodes);
+  } catch (e) {
+    return res.status(400).json({ error: String(e.message) });
+  }
+  bumpLocalBarcodeMaxFromBarcodes(importedBarcodes);
 
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM variations').run();

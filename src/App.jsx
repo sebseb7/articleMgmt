@@ -188,6 +188,7 @@ class App extends Component {
       this.notify(barcode ? 'Barcode saved.' : 'Barcode cleared.');
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
+      this.cancelBarcodeCapture();
     }
   };
 

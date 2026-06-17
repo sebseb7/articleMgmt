@@ -43,16 +43,16 @@ export default defineConfig({
       },
     },
   },
-  server: {
+  preview: {
     port: 4991,
     proxy: {
       '/api': 'http://127.0.0.1:3991',
     },
   },
-  preview: {
-    port: 4991,
+  server: {
+    port: Number(process.env.VITE_PORT) || 4991,
     proxy: {
-      '/api': 'http://127.0.0.1:3991',
+      '/api': `http://127.0.0.1:${process.env.PORT || 3991}`,
     },
   },
 });

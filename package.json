@@ -6,11 +6,18 @@
   "description": "Import/manage/export SumUp item CSVs with a Vite + React + MUI frontend and a better-sqlite3 backend.",
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"npm:server\" \"npm:web\"",
+    "dev:test": "concurrently -n server,web -c blue,green \"npm:server:test\" \"npm:web:test\"",
     "server": "node server/index.js",
+    "server:test": "node server/index.js",
     "web": "vite",
+    "web:test": "vite --port 4993",
     "build": "vite build",
     "preview": "vite preview",
-    "user": "node server/scripts/user.js"
+    "user": "node server/scripts/user.js",
+    "seed": "node server/scripts/seed.js",
+    "seed:fresh": "node server/scripts/seed.js --fresh",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -30,6 +37,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^10.0.3",
     "vite": "^8.0.16"

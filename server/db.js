@@ -4,9 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-export const dataDir = join(__dirname, '..', 'data');
+const projectRoot = join(__dirname, '..');
+export const dataDir = join(projectRoot, 'data');
 mkdirSync(dataDir, { recursive: true });
-export const dbPath = join(dataDir, 'data.db');
+export const dbPath = process.env.DB_PATH
+  ? join(projectRoot, process.env.DB_PATH)
+  : join(dataDir, 'data.db');
+mkdirSync(dirname(dbPath), { recursive: true });
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');

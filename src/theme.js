@@ -107,8 +107,31 @@ export const theme = createTheme({
         containedPrimary: {
           background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
           boxShadow: '0 2px 8px rgba(13, 148, 136, 0.3)',
-          '&:hover': {
+          color: '#ffffff',
+          '@media (hover: hover)': {
+            '&:hover': {
+              background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+              color: '#ffffff',
+            },
+          },
+          '&:active': {
             background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+            color: '#ffffff',
+          },
+        },
+        outlinedPrimary: {
+          borderColor: 'rgba(13, 148, 136, 0.45)',
+          color: '#0f766e',
+          '@media (hover: hover)': {
+            '&:hover': {
+              backgroundColor: 'rgba(13, 148, 136, 0.1)',
+              borderColor: '#0d9488',
+              color: '#0f766e',
+            },
+          },
+          '&:active': {
+            backgroundColor: 'rgba(13, 148, 136, 0.14)',
+            color: '#0f766e',
           },
         },
       },
@@ -116,24 +139,112 @@ export const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         filled: {
-          backgroundColor: 'rgba(13, 148, 136, 0.14)',
-          color: '#0f766e',
+          '&:not(.MuiChip-colorPrimary)': {
+            backgroundColor: 'rgba(13, 148, 136, 0.14)',
+            color: '#0f766e',
+          },
+        },
+        filledPrimary: {
+          backgroundColor: '#0d9488',
+          color: '#ffffff',
+          '@media (hover: hover)': {
+            '&:hover': {
+              backgroundColor: '#0f766e',
+              color: '#ffffff',
+            },
+          },
+          '&:active': {
+            backgroundColor: '#0f766e',
+            color: '#ffffff',
+          },
         },
         outlined: {
-          borderColor: 'rgba(13, 148, 136, 0.35)',
+          '&:not(.MuiChip-colorPrimary)': {
+            borderColor: 'rgba(13, 148, 136, 0.35)',
+            color: '#0f766e',
+            '@media (hover: hover)': {
+              '&:hover': {
+                backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                color: '#0f766e',
+              },
+            },
+            '&:active': {
+              backgroundColor: 'rgba(13, 148, 136, 0.14)',
+              color: '#0f766e',
+            },
+          },
+        },
+        outlinedPrimary: {
+          borderColor: 'rgba(13, 148, 136, 0.45)',
           color: '#0f766e',
+          '@media (hover: hover)': {
+            '&:hover': {
+              backgroundColor: 'rgba(13, 148, 136, 0.1)',
+              color: '#0f766e',
+            },
+          },
+          '&:active': {
+            backgroundColor: 'rgba(13, 148, 136, 0.14)',
+            color: '#0f766e',
+          },
+        },
+        deleteIcon: {
+          color: 'inherit',
+        },
+        deleteIconColorPrimary: {
+          color: 'rgba(255, 255, 255, 0.85)',
+          '@media (hover: hover)': {
+            '&:hover': {
+              color: '#ffffff',
+            },
+          },
         },
       },
     },
     MuiPaginationItem: {
       styleOverrides: {
         root: {
+          color: '#0f766e',
+          '@media (hover: hover)': {
+            '&:hover': {
+              backgroundColor: 'rgba(13, 148, 136, 0.12)',
+              color: '#0f766e',
+            },
+          },
+          '&:active': {
+            backgroundColor: 'rgba(13, 148, 136, 0.16)',
+            color: '#0f766e',
+          },
           '&.Mui-selected': {
             background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
-            color: '#fff',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+            color: '#ffffff',
+            '@media (hover: hover)': {
+              '&:hover': {
+                background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+                color: '#ffffff',
+              },
             },
+            '&:active': {
+              background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+              color: '#ffffff',
+            },
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        colorPrimary: {
+          color: '#0d9488',
+          '@media (hover: hover)': {
+            '&:hover': {
+              backgroundColor: 'rgba(13, 148, 136, 0.12)',
+              color: '#0f766e',
+            },
+          },
+          '&:active': {
+            backgroundColor: 'rgba(13, 148, 136, 0.16)',
+            color: '#0f766e',
           },
         },
       },

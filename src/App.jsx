@@ -22,7 +22,8 @@ import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
 import { theme } from './theme.js';
 
-const money = (v) => (v === null || v === undefined ? '—' : Number(v).toFixed(2));
+const euroFormat = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+const money = (v) => (v === null || v === undefined ? '—' : euroFormat.format(Number(v)));
 
 const MIN_SEARCH_CHARS = 3;
 const DEFAULT_PAGE_SIZE = 25;

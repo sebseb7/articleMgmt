@@ -61,7 +61,6 @@ export const blankArticle = () => ({
   image_url: '',
   visible_online: false,
   track_inventory: false,
-  seo_title: '',
   price: '',
   quantity: '',
   low_threshold: '',
@@ -90,7 +89,6 @@ function formSnapshot(data) {
     image_url: data.image_url || '',
     visible_online: !!data.visible_online,
     track_inventory: !!data.track_inventory,
-    seo_title: data.seo_title || '',
     price: data.price ?? '',
     quantity: data.quantity ?? '',
     low_threshold: data.low_threshold ?? '',
@@ -244,9 +242,6 @@ export default class ArticleDialog extends Component {
                   Manage categories…
                 </Button>
               )}
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField label="SEO title" fullWidth value={form.seo_title} onChange={this.set('seo_title')} />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField label="Image URL" fullWidth value={form.image_url} onChange={this.set('image_url')} />

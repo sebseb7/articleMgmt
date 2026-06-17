@@ -126,7 +126,6 @@ export function parseCsv(text) {
         image_url: trimOrNull(row[C.IMAGE_1]),
         visible_online: trimOrNull(row[C.DISPLAY_ONLINE]) === 'Yes' ? 1 : 0,
         track_inventory: trimOrNull(row[C.TRACK_INVENTORY]) === 'Yes' ? 1 : 0,
-        seo_title: trimOrNull(row[C.SEO_TITLE]),
         // Standalone fields (only meaningful when there are no variations):
         price: toNumber(row[C.PRICE]),
         quantity: toInt(row[C.QUANTITY]),
@@ -179,7 +178,7 @@ export function buildCsv(articles) {
     row[C.DISPLAY_CHECKOUT] = 'Yes';
     row[C.IMAGE_1] = a.image_url ?? '';
     row[C.DISPLAY_ONLINE] = a.visible_online ? 'Yes' : 'No';
-    row[C.SEO_TITLE] = a.seo_title ?? '';
+    row[C.SEO_TITLE] = a.item_name ?? '';
     row[C.ITEM_ID] = a.item_uuid ?? '';
 
     if (standalone) {

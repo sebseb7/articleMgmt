@@ -35,11 +35,11 @@ const PORT = process.env.PORT || 3991;
 const insertArticle = db.prepare(`
   INSERT INTO articles
     (item_uuid, item_name, tax_rate, category_id, image_url, visible_online,
-     track_inventory, seo_title, price, quantity, low_threshold, barcode,
+     track_inventory, price, quantity, low_threshold, barcode,
      variant_uuid, sort_order)
   VALUES
     (@item_uuid, @item_name, @tax_rate, @category_id, @image_url, @visible_online,
-     @track_inventory, @seo_title, @price, @quantity, @low_threshold, @barcode,
+     @track_inventory, @price, @quantity, @low_threshold, @barcode,
      @variant_uuid, @sort_order)
 `);
 
@@ -56,7 +56,7 @@ const updateArticle = db.prepare(`
   UPDATE articles SET
     item_uuid=@item_uuid, item_name=@item_name, tax_rate=@tax_rate,
     category_id=@category_id, image_url=@image_url, visible_online=@visible_online,
-    track_inventory=@track_inventory, seo_title=@seo_title, price=@price,
+    track_inventory=@track_inventory, price=@price,
     quantity=@quantity, low_threshold=@low_threshold, barcode=@barcode,
     variant_uuid=@variant_uuid
   WHERE id=@id
@@ -79,7 +79,6 @@ function articlePayload(body, sortOrder) {
     image_url: body.image_url ?? null,
     visible_online: body.visible_online ? 1 : 0,
     track_inventory: body.track_inventory ? 1 : 0,
-    seo_title: body.seo_title ?? null,
     price: body.price ?? null,
     quantity: body.quantity ?? null,
     low_threshold: body.low_threshold ?? null,

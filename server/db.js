@@ -27,7 +27,6 @@ db.exec(`
     image_url       TEXT,
     visible_online  INTEGER NOT NULL DEFAULT 0,
     track_inventory INTEGER NOT NULL DEFAULT 0,
-    seo_title       TEXT,
     price           REAL,
     quantity        INTEGER,
     low_threshold   INTEGER,
@@ -91,6 +90,14 @@ if (articleCols.includes('category')) {
     db.exec('ALTER TABLE articles DROP COLUMN category');
   } catch {
     // SQLite < 3.35 cannot drop columns; category_id is authoritative
+  }
+}
+
+if (db.prepare('PRAGMA table_info(articles)').all().some((c) => c.name === 'seo_title')) {
+  try {
+    db.exec('ALTER TABLE articles DROP COLUMN seo_title');
+  } catch {
+    // SQLite < 3.35 cannot drop columns; column is ignored
   }
 }
 

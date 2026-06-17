@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import db from './db.js';
+import db, { dbPath } from './db.js';
 import { parseCsv, buildCsv } from './csv.js';
 import {
   authenticate,
@@ -20,6 +20,8 @@ import {
   deleteCategoryById,
   clearCategories,
 } from './categories.js';
+import { allocateNextLocalBarcode } from './metadata.js';
+import { startBackupScheduler } from './backup.js';
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -241,6 +243,15 @@ app.get('/api/stats', requireAuth, (req, res) => {
   res.json(getStats());
 });
 
+app.post('/api/barcode/generate', requireAuth, (req, res) => {
+  try {
+    const barcode = allocateNextLocalBarcode();
+    res.json({ barcode });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message) });
+  }
+});
+
 app.get('/api/categories', requireAuth, (req, res) => {
   res.json(listCategories());
 });
@@ -369,4 +380,5 @@ app.get('/api/export', requireAuth, (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);
+  startBackupScheduler(db, dbPath);
 });

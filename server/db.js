@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, '..', 'data');
+export const dataDir = join(__dirname, '..', 'data');
 mkdirSync(dataDir, { recursive: true });
-const db = new Database(join(dataDir, 'data.db'));
+export const dbPath = join(dataDir, 'data.db');
+const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -56,7 +57,16 @@ db.exec(`
     password_hash TEXT NOT NULL,
     created_at    TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS metadata (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `);
+
+db.prepare(
+  "INSERT OR IGNORE INTO metadata (key, value) VALUES ('local_barcode_max', '2342000000000')"
+).run();
 
 // Migrate legacy articles.category (TEXT) → category_id
 const articleCols = db.prepare('PRAGMA table_info(articles)').all().map((c) => c.name);

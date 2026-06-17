@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Component } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton, Tooltip,
@@ -11,188 +11,196 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { api } from './api.js';
 
-export default function CategoryDialog({ open, onClose, onChanged }) {
-  const [categories, setCategories] = useState([]);
-  const [newName, setNewName] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+export default class CategoryDialog extends Component {
+  state = {
+    categories: [],
+    newName: '',
+    editingId: null,
+    editName: '',
+    error: '',
+    loading: false,
+  };
 
-  const load = async () => {
-    setLoading(true);
+  componentDidUpdate(prevProps) {
+    if (this.props.open && !prevProps.open) {
+      this.setState({
+        error: '',
+        newName: '',
+        editingId: null,
+      });
+      this.load();
+    }
+  }
+
+  load = async () => {
+    this.setState({ loading: true });
     try {
-      setCategories(await api.listCategories());
+      const categories = await api.listCategories();
+      this.setState({ categories });
     } catch (e) {
-      setError(e.message);
+      this.setState({ error: e.message });
     } finally {
-      setLoading(false);
+      this.setState({ loading: false });
     }
   };
 
-  useEffect(() => {
-    if (open) {
-      setError('');
-      setNewName('');
-      setEditingId(null);
-      load();
-    }
-  }, [open]);
-
-  const notifyChanged = async () => {
-    await load();
-    onChanged?.();
+  notifyChanged = async () => {
+    await this.load();
+    this.props.onChanged?.();
   };
 
-  const handleAdd = async () => {
-    setError('');
+  handleAdd = async () => {
+    const { newName } = this.state;
+    this.setState({ error: '' });
     try {
       await api.createCategory(newName);
-      setNewName('');
-      await notifyChanged();
+      this.setState({ newName: '' });
+      await this.notifyChanged();
     } catch (e) {
-      setError(e.message);
+      this.setState({ error: e.message });
     }
   };
 
-  const startEdit = (cat) => {
-    setEditingId(cat.id);
-    setEditName(cat.name);
-    setError('');
+  startEdit = (cat) => {
+    this.setState({ editingId: cat.id, editName: cat.name, error: '' });
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditName('');
+  cancelEdit = () => {
+    this.setState({ editingId: null, editName: '' });
   };
 
-  const handleSaveEdit = async () => {
-    setError('');
+  handleSaveEdit = async () => {
+    const { editingId, editName } = this.state;
+    this.setState({ error: '' });
     try {
       await api.updateCategory(editingId, editName);
-      setEditingId(null);
-      setEditName('');
-      await notifyChanged();
+      this.setState({ editingId: null, editName: '' });
+      await this.notifyChanged();
     } catch (e) {
-      setError(e.message);
+      this.setState({ error: e.message });
     }
   };
 
-  const handleDelete = async (cat) => {
+  handleDelete = async (cat) => {
     if (!window.confirm(`Delete category "${cat.name}"?`)) return;
-    setError('');
+    this.setState({ error: '' });
     try {
       await api.removeCategory(cat.id);
-      await notifyChanged();
+      await this.notifyChanged();
     } catch (e) {
-      setError(e.message);
+      this.setState({ error: e.message });
     }
   };
 
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Categories</DialogTitle>
-      <DialogContent dividers>
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <TextField
-            size="small"
-            label="New category"
-            fullWidth
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && newName.trim() && handleAdd()}
-          />
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-            disabled={!newName.trim()}
-            sx={{ flexShrink: 0 }}
-          >
-            Add
-          </Button>
-        </Box>
-        {error && (
-          <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-            {error}
-          </Typography>
-        )}
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell align="right" width={100}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
+  render() {
+    const { open, onClose } = this.props;
+    const { categories, newName, editingId, editName, error, loading } = this.state;
+
+    return (
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Categories</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <TextField
+              size="small"
+              label="New category"
+              fullWidth
+              value={newName}
+              onChange={(e) => this.setState({ newName: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && newName.trim() && this.handleAdd()}
+            />
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={this.handleAdd}
+              disabled={!newName.trim()}
+              sx={{ flexShrink: 0 }}
+            >
+              Add
+            </Button>
+          </Box>
+          {error && (
+            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={2}>Loading…</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell align="right" width={100}>Actions</TableCell>
               </TableRow>
-            ) : categories.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
-                  No categories yet. Import a CSV or add one above.
-                </TableCell>
-              </TableRow>
-            ) : (
-              categories.map((cat) => (
-                <TableRow key={cat.id}>
-                  <TableCell>
-                    {editingId === cat.id ? (
-                      <TextField
-                        size="small"
-                        fullWidth
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveEdit();
-                          if (e.key === 'Escape') cancelEdit();
-                        }}
-                        autoFocus
-                      />
-                    ) : (
-                      cat.name
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    {editingId === cat.id ? (
-                      <>
-                        <Tooltip title="Save">
-                          <IconButton size="small" onClick={handleSaveEdit}>
-                            <CheckIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Cancel">
-                          <IconButton size="small" onClick={cancelEdit}>
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </>
-                    ) : (
-                      <>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => startEdit(cat)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton size="small" onClick={() => handleDelete(cat)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </>
-                    )}
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={2}>Loading…</TableCell>
+                </TableRow>
+              ) : categories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={2} sx={{ color: 'text.secondary' }}>
+                    No categories yet. Import a CSV or add one above.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
-  );
+              ) : (
+                categories.map((cat) => (
+                  <TableRow key={cat.id}>
+                    <TableCell>
+                      {editingId === cat.id ? (
+                        <TextField
+                          size="small"
+                          fullWidth
+                          value={editName}
+                          onChange={(e) => this.setState({ editName: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') this.handleSaveEdit();
+                            if (e.key === 'Escape') this.cancelEdit();
+                          }}
+                          autoFocus
+                        />
+                      ) : (
+                        cat.name
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {editingId === cat.id ? (
+                        <>
+                          <Tooltip title="Save">
+                            <IconButton size="small" onClick={this.handleSaveEdit}>
+                              <CheckIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Cancel">
+                            <IconButton size="small" onClick={this.cancelEdit}>
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => this.startEdit(cat)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton size="small" onClick={() => this.handleDelete(cat)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
 }

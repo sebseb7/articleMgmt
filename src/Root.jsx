@@ -1,39 +1,49 @@
-import { useEffect, useState } from 'react';
+import { Component } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { api } from './api.js';
 import Login from './Login.jsx';
 import App from './App.jsx';
 
-export default function Root() {
-  const [user, setUser] = useState(null);
-  const [checking, setChecking] = useState(true);
+export default class Root extends Component {
+  state = {
+    user: null,
+    checking: true,
+  };
 
-  useEffect(() => {
+  componentDidMount() {
     api.me()
-      .then(({ user: current }) => setUser(current))
-      .catch(() => setUser(null))
-      .finally(() => setChecking(false));
-  }, []);
+      .then(({ user: current }) => this.setState({ user: current }))
+      .catch(() => this.setState({ user: null }))
+      .finally(() => this.setState({ checking: false }));
+  }
 
-  const handleLogout = async () => {
+  handleLogin = (user) => {
+    this.setState({ user });
+  };
+
+  handleLogout = async () => {
     try {
       await api.logout();
     } finally {
-      setUser(null);
+      this.setState({ user: null });
     }
   };
 
-  if (checking) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  render() {
+    const { user, checking } = this.state;
 
-  if (!user) {
-    return <Login onLogin={setUser} />;
-  }
+    if (checking) {
+      return (
+        <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
 
-  return <App user={user} onLogout={handleLogout} />;
+    if (!user) {
+      return <Login onLogin={this.handleLogin} />;
+    }
+
+    return <App user={user} onLogout={this.handleLogout} />;
+  }
 }

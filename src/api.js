@@ -44,6 +44,9 @@ export const api = {
 
   stats: () => fetch('/api/stats', credentials).then(json),
 
+  generateBarcode: () =>
+    fetch('/api/barcode/generate', { method: 'POST', ...credentials }).then(json),
+
   listCategories: () => fetch('/api/categories', credentials).then(json),
 
   createCategory: (name) =>

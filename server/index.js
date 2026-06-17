@@ -251,9 +251,10 @@ function getStats() {
 
 function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = false, categoryIds } = {}) {
   const { clause, params } = buildArticleWhere({ q, missingBarcode, categoryIds });
-  const limit = Math.min(Math.max(1, Number(pageSize) || 25), 100);
-  const currentPage = Math.max(1, Number(page) || 1);
-  const offset = (currentPage - 1) * limit;
+  const isAll = Number(pageSize) === 0;
+  const limit = isAll ? null : Math.min(Math.max(1, Number(pageSize) || 25), 100);
+  const currentPage = isAll ? 1 : Math.max(1, Number(page) || 1);
+  const offset = isAll ? 0 : (currentPage - 1) * limit;
 
   const total = db
     .prepare(`
@@ -263,27 +264,34 @@ function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = fal
     `)
     .get(...params).c;
 
-  const articles = db
-    .prepare(`
+  const articles = isAll
+    ? db.prepare(`
+      SELECT a.*, c.name AS category
+      FROM articles a
+      LEFT JOIN categories c ON c.id = a.category_id
+      ${clause}
+      ORDER BY a.sort_order, a.id
+    `).all(...params)
+    : db.prepare(`
       SELECT a.*, c.name AS category
       FROM articles a
       LEFT JOIN categories c ON c.id = a.category_id
       ${clause}
       ORDER BY a.sort_order, a.id
       LIMIT ? OFFSET ?
-    `)
-    .all(...params, limit, offset);
+    `).all(...params, limit, offset);
 
   attachVariations(articles);
 
-  const pageCount = Math.max(1, Math.ceil(total / limit));
+  const effectivePageSize = isAll ? 0 : limit;
+  const pageCount = isAll ? 1 : Math.max(1, Math.ceil(total / limit));
   const safePage = total === 0 ? 1 : Math.min(currentPage, pageCount);
 
   return {
     items: articles,
     total,
     page: safePage,
-    pageSize: limit,
+    pageSize: effectivePageSize,
     pageCount,
     stats: getStats(),
     categoryCounts: getCategoryCounts({ q, missingBarcode }),

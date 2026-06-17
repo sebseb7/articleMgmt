@@ -4,8 +4,15 @@ export const money = (v) => (v === null || v === undefined ? '—' : euroFormat.
 
 export const MIN_SEARCH_CHARS = 3;
 export const DEFAULT_PAGE_SIZE = 25;
+/** Sentinel: fetch every matching row (no LIMIT). */
+export const ALL_PAGE_SIZE = 0;
+export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, ALL_PAGE_SIZE];
 export const TABLE_ROW_HEIGHT = 42;
 export const TABLE_HEADER_HEIGHT = 48;
+
+export function isAllPageSize(pageSize) {
+  return Number(pageSize) === ALL_PAGE_SIZE;
+}
 
 function compactLength(text) {
   return text.replace(/\s/g, '').length;

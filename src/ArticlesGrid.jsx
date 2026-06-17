@@ -49,6 +49,8 @@ const agTheme = themeQuartz.withParams({
   rowHoverColor: 'rgba(8, 145, 178, 0.06)',
   rowBorder: { style: 'solid', width: 1, color: 'rgba(13, 148, 136, 0.16)' },
   wrapperBorder: false,
+  wrapperBorderRadius: 0,
+  borderRadius: 0,
   fontFamily: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
 });
 
@@ -423,7 +425,19 @@ export default class ArticlesGrid extends Component {
     };
 
     return (
-      <Box sx={{ width: '100%', '& .ag-cell': { display: 'flex', alignItems: 'center' } }}>
+      <Box
+        sx={{
+          width: '100%',
+          '& .ag-cell': { display: 'flex', alignItems: 'center' },
+          '& .ag-root-wrapper': {
+            borderRadius: 0,
+            borderTop: 'none',
+          },
+          '& .ag-header': {
+            borderTop: 'none',
+          },
+        }}
+      >
         <AgGridReact
           theme={agTheme}
           domLayout="autoHeight"

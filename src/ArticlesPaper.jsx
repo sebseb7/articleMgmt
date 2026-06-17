@@ -3,7 +3,7 @@ import {
   Box, Typography, CircularProgress,
 } from '@mui/material';
 import TableNavigation from './TableNavigation.jsx';
-import { formatCategoryFilterLabel, TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT } from './articleTableUtils.js';
+import { formatCategoryFilterLabel, TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT, isAllPageSize } from './articleTableUtils.js';
 
 const ArticlesGrid = lazy(() => import('./ArticlesGrid.jsx'));
 
@@ -18,7 +18,8 @@ export default class ArticlesPaper extends Component {
     const hasCategoryFilter = categoryFilters.length > 0;
     const showEmptyState = !loading && total === 0;
     const isInitialLoad = loading && articles.length === 0;
-    const tableMinHeight = TABLE_HEADER_HEIGHT + pageSize * TABLE_ROW_HEIGHT;
+    const visibleRows = isAllPageSize(pageSize) ? Math.max(articles.length, 1) : pageSize;
+    const tableMinHeight = TABLE_HEADER_HEIGHT + visibleRows * TABLE_ROW_HEIGHT;
 
     if (showEmptyState) {
       return (

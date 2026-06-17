@@ -1,8 +1,9 @@
 import { Component, createRef } from 'react';
 import {
   AppBar, Toolbar, Typography, Button, Box, Container, Paper, TextField,
-  InputAdornment, Snackbar, Alert, IconButton, Tooltip, FormControlLabel, Switch,
+  InputAdornment, IconButton, Tooltip, FormControlLabel, Switch,
 } from '@mui/material';
+import { enqueueSnackbar } from 'notistack';
 import UploadIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddIcon from '@mui/icons-material/Add';
@@ -36,7 +37,6 @@ class App extends Component {
     dialog: { open: false, initial: null },
     categoriesOpen: false,
     categories: [],
-    toast: null,
     isMobile: false,
     barcodeCapture: null,
     barcodeCaptureBuffer: '',
@@ -106,7 +106,7 @@ class App extends Component {
   };
 
   notify = (message, severity = 'success') => {
-    this.setState({ toast: { message, severity } });
+    enqueueSnackbar(message, { variant: severity });
   };
 
   handleAuthError = (e) => {
@@ -396,7 +396,7 @@ class App extends Component {
     const {
       articles, total, page, pageSize, stats, loading, query, search,
       missingBarcodeOnly, categoryFilters, categoryCounts,
-      dialog, categoriesOpen, categories, toast, isMobile,
+      dialog, categoriesOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
     } = this.state;
 
@@ -623,15 +623,6 @@ class App extends Component {
             await this.load(page, pageSize, search);
           }}
         />
-
-        <Snackbar
-          open={!!toast}
-          autoHideDuration={4000}
-          onClose={() => this.setState({ toast: null })}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          {toast && <Alert severity={toast.severity} onClose={() => this.setState({ toast: null })} variant="filled">{toast.message}</Alert>}
-        </Snackbar>
       </Box>
     );
   }

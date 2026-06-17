@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
+import { SnackbarProvider } from 'notistack';
 import { theme } from './theme.js';
 import ModalScrollLock from './ModalScrollLock.jsx';
 import { api } from './api.js';
@@ -58,7 +59,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <ModalScrollLock />
-      <Root />
+      <SnackbarProvider
+        autoHideDuration={4000}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        maxSnack={3}
+      >
+        <Root />
+      </SnackbarProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

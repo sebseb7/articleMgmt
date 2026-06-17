@@ -6,6 +6,7 @@ const nodeModules = /node_modules/;
 export default defineConfig({
   plugins: [react()],
   build: {
+    chunkSizeWarningLimit: 700,
     rolldownOptions: {
       output: {
         entryFileNames: 'assets/mainApp-[hash].js',
@@ -26,6 +27,11 @@ export default defineConfig({
               name: 'mui',
               test: /node_modules[\\/](@mui[\\/](?!icons-material)|@emotion[\\/]|@popperjs[\\/])/,
               priority: 30,
+            },
+            {
+              name: 'agGrid',
+              test: /node_modules[\\/](ag-grid-community|ag-grid-react|ag-charts-types)([\\/]|$)/,
+              priority: 25,
             },
             {
               name: 'otherLibs',

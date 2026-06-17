@@ -1,10 +1,11 @@
-import { Component } from 'react';
+import { Component, lazy, Suspense } from 'react';
 import {
   Box, Typography, CircularProgress,
 } from '@mui/material';
-import ArticlesGrid from './ArticlesGrid.jsx';
 import TableNavigation from './TableNavigation.jsx';
 import { formatCategoryFilterLabel, TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT } from './articleTableUtils.js';
+
+const ArticlesGrid = lazy(() => import('./ArticlesGrid.jsx'));
 
 export default class ArticlesPaper extends Component {
   render() {
@@ -60,14 +61,22 @@ export default class ArticlesPaper extends Component {
           compact={isMobile}
         />
         <Box sx={{ minHeight: tableMinHeight }}>
-          <ArticlesGrid
-            articles={articles}
-            barcodeCapture={barcodeCapture}
-            barcodeCaptureBuffer={barcodeCaptureBuffer}
-            onStartBarcodeCapture={onStartBarcodeCapture}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
+          <Suspense
+            fallback={(
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: tableMinHeight }}>
+                <CircularProgress />
+              </Box>
+            )}
+          >
+            <ArticlesGrid
+              articles={articles}
+              barcodeCapture={barcodeCapture}
+              barcodeCaptureBuffer={barcodeCaptureBuffer}
+              onStartBarcodeCapture={onStartBarcodeCapture}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          </Suspense>
         </Box>
         <TableNavigation
           edge="bottom"

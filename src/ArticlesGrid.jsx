@@ -8,13 +8,29 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import {
+  ModuleRegistry,
+  themeQuartz,
+  ClientSideRowModelModule,
+  ClientSideRowModelApiModule,
+  RowApiModule,
+  RenderApiModule,
+  CellStyleModule,
+  ValidationModule,
+} from 'ag-grid-community';
 import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
 import BarcodeAssignButton from './BarcodeAssignButton.jsx';
-import { money, TABLE_ROW_HEIGHT } from './articleTableUtils.js';
+import { money } from './articleTableUtils.js';
 
-ModuleRegistry.registerModules([AllCommunityModule]);
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ClientSideRowModelApiModule,
+  RowApiModule,
+  RenderApiModule,
+  CellStyleModule,
+  ...(import.meta.env.DEV ? [ValidationModule] : []),
+]);
 
 const ARTICLE_ROW_HEIGHT = 52;
 const DETAIL_HEADER_HEIGHT = 52;

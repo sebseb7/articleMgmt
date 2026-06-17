@@ -14,6 +14,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import LogoutIcon from '@mui/icons-material/Logout';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import CategoryIcon from '@mui/icons-material/Category';
 import { api } from './api.js';
 import ArticleDialog from './ArticleDialog.jsx';
@@ -87,21 +88,21 @@ function isBarcodeCapturing(barcodeCapture, articleId, variationId = null) {
 }
 
 function renderBarcodeValue(barcode, articleId, variationId, barcodeCapture, barcodeCaptureBuffer, onStartBarcodeCapture) {
-  if (String(barcode ?? '').trim()) {
-    return barcode;
-  }
-
   const active = isBarcodeCapturing(barcodeCapture, articleId, variationId);
+  const hasBarcode = String(barcode ?? '').trim();
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <BarcodeAssignButton
         active={active}
         onStart={() => onStartBarcodeCapture(articleId, variationId)}
       />
-      {active && barcodeCaptureBuffer && (
+      {active && barcodeCaptureBuffer ? (
         <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
           {barcodeCaptureBuffer}
         </Typography>
+      ) : (
+        hasBarcode && <span>{barcode}</span>
       )}
     </Box>
   );
@@ -447,17 +448,12 @@ class App extends Component {
     if (!barcodeCapture) return;
 
     const barcode = barcodeCaptureBuffer.trim();
-    if (!barcode) {
-      this.cancelBarcodeCapture();
-      return;
-    }
-
     const { articleId, variationId } = barcodeCapture;
     try {
-      await api.assignBarcode(articleId, { barcode, variationId });
-      this.updateArticleBarcodeInState(articleId, variationId, barcode);
+      await api.assignBarcode(articleId, { barcode: barcode || null, variationId });
+      this.updateArticleBarcodeInState(articleId, variationId, barcode || null);
       this.cancelBarcodeCapture();
-      this.notify('Barcode saved.');
+      this.notify(barcode ? 'Barcode saved.' : 'Barcode cleared.');
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
     }
@@ -648,6 +644,20 @@ class App extends Component {
     }
   };
 
+  handleFlushDb = async () => {
+    if (!window.confirm('Delete all articles and variations? Categories will be kept.')) return;
+    const { pageSize } = this.state;
+    try {
+      await api.flushDb();
+      this.setState({ page: 0, search: '', query: '', categoryFilters: [] });
+      this.cancelBarcodeCapture();
+      await this.load(0, pageSize, '');
+      this.notify('Database flushed.');
+    } catch (e) {
+      if (!this.handleAuthError(e)) this.notify(e.message, 'error');
+    }
+  };
+
   renderCategoryChips() {
     const { categoryCounts, categoryFilters } = this.state;
     if (!categoryCounts.length) return null;
@@ -831,6 +841,11 @@ class App extends Component {
                       <DownloadIcon />
                     </IconButton>
                   </Tooltip>
+                  <Tooltip title="Flush DB">
+                    <IconButton color="inherit" onClick={this.handleFlushDb}>
+                      <DeleteSweepIcon />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title={`Logout (${user.username})`}>
                     <IconButton color="inherit" onClick={onLogout}>
                       <LogoutIcon />
@@ -844,6 +859,9 @@ class App extends Component {
                   </Button>
                   <Button color="inherit" startIcon={<DownloadIcon />} onClick={this.handleExport}>
                     Export CSV
+                  </Button>
+                  <Button color="inherit" startIcon={<DeleteSweepIcon />} onClick={this.handleFlushDb}>
+                    Flush DB
                   </Button>
                   <Typography variant="body2" sx={{ opacity: 0.9, mx: 0.5 }}>
                     {user.username}

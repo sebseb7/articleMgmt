@@ -7,7 +7,7 @@ class BarcodeAssignButton extends Component {
     const { active, onStart } = this.props;
 
     return (
-      <Tooltip title={active ? 'Enter barcode digits, then press Enter' : 'Assign barcode'}>
+      <Tooltip title={active ? 'Enter barcode digits and press Enter; Enter alone clears' : 'Assign barcode'}>
         <IconButton
           size="small"
           onClick={onStart}

@@ -21,7 +21,7 @@ import {
   clearCategories,
 } from './categories.js';
 import { allocateNextLocalBarcode } from './metadata.js';
-import { startBackupScheduler } from './backup.js';
+import { startBackupScheduler, backupDatabase } from './backup.js';
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -404,10 +404,7 @@ app.put('/api/articles/:id', requireAuth, (req, res) => {
 app.put('/api/articles/:id/barcode', requireAuth, (req, res) => {
   const articleId = Number(req.params.id);
   const { barcode, variationId } = req.body || {};
-  const trimmed = String(barcode ?? '').trim();
-  if (!trimmed) {
-    return res.status(400).json({ error: 'Barcode is required.' });
-  }
+  const value = String(barcode ?? '').trim() || null;
 
   const article = db.prepare('SELECT id FROM articles WHERE id = ?').get(articleId);
   if (!article) {
@@ -417,20 +414,37 @@ app.put('/api/articles/:id/barcode', requireAuth, (req, res) => {
   if (variationId != null && variationId !== '') {
     const info = db.prepare(
       'UPDATE variations SET barcode = ? WHERE id = ? AND article_id = ?',
-    ).run(trimmed, Number(variationId), articleId);
+    ).run(value, Number(variationId), articleId);
     if (info.changes === 0) {
       return res.status(404).json({ error: 'Variation not found.' });
     }
   } else {
-    db.prepare('UPDATE articles SET barcode = ? WHERE id = ?').run(trimmed, articleId);
+    db.prepare('UPDATE articles SET barcode = ? WHERE id = ?').run(value, articleId);
   }
 
-  res.json({ ok: true, barcode: trimmed });
+  res.json({ ok: true, barcode: value });
 });
 
 app.delete('/api/articles/:id', requireAuth, (req, res) => {
   deleteArticleStmt.run(Number(req.params.id));
   res.json({ ok: true });
+});
+
+app.post('/api/flush', requireAuth, async (req, res) => {
+  try {
+    await backupDatabase(db, dbPath);
+    const tx = db.transaction(() => {
+      db.prepare('DELETE FROM variations').run();
+      db.prepare('DELETE FROM articles').run();
+      db.prepare(
+        "DELETE FROM sqlite_sequence WHERE name IN ('articles', 'variations')",
+      ).run();
+    });
+    tx();
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message) });
+  }
 });
 
 // Import CSV (replaces all existing data). Accepts raw CSV text or { csv }.

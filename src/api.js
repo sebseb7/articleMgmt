@@ -104,6 +104,9 @@ export const api = {
       body: csvText,
     }).then(json),
 
+  flushDb: () =>
+    fetch('/api/flush', { method: 'POST', ...credentials }).then(json),
+
   exportCsv: async () => {
     const r = await fetch('/api/export', credentials);
     if (r.status === 401) {

@@ -3,33 +3,43 @@ import { dirname, join } from 'node:path';
 
 const HOUR_MS = 60 * 60 * 1000;
 
+let running = false;
+
 function backupFilename() {
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   return `data-${stamp}.db`;
 }
 
-export function startBackupScheduler(db, databasePath) {
-  const backupDir = join(dirname(databasePath), 'backup');
-  mkdirSync(backupDir, { recursive: true });
-
-  let running = false;
-
-  async function runBackup() {
-    if (running) return;
-    running = true;
+export async function backupDatabase(db, databasePath) {
+  if (running) {
+    throw new Error('Backup already in progress.');
+  }
+  running = true;
+  try {
+    const backupDir = join(dirname(databasePath), 'backup');
+    mkdirSync(backupDir, { recursive: true });
     const dest = join(backupDir, backupFilename());
+    await db.backup(dest);
+    console.log(`Database backed up to ${dest}`);
+    return dest;
+  } finally {
+    running = false;
+  }
+}
+
+export function startBackupScheduler(db, databasePath) {
+  async function runScheduledBackup() {
     try {
-      await db.backup(dest);
-      console.log(`Database backed up to ${dest}`);
+      await backupDatabase(db, databasePath);
     } catch (e) {
-      console.error('Database backup failed:', e);
-    } finally {
-      running = false;
+      if (e.message !== 'Backup already in progress.') {
+        console.error('Database backup failed:', e);
+      }
     }
   }
 
-  runBackup();
-  const timer = setInterval(runBackup, HOUR_MS);
+  runScheduledBackup();
+  const timer = setInterval(runScheduledBackup, HOUR_MS);
 
   return () => clearInterval(timer);
 }

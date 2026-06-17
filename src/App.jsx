@@ -1,291 +1,24 @@
 import { Component, createRef } from 'react';
 import {
-  AppBar, Toolbar, Typography, Button, Box, Container, Paper, Table, TableHead,
-  TableBody, TableRow, TableCell, IconButton, Collapse, Chip, TextField,
-  InputAdornment, Snackbar, Alert, CircularProgress, TableContainer, Tooltip,
-  Pagination, Select, MenuItem, FormControlLabel, Switch,
+  AppBar, Toolbar, Typography, Button, Box, Container, Paper, TextField,
+  InputAdornment, Snackbar, Alert, IconButton, Tooltip, FormControlLabel, Switch,
 } from '@mui/material';
 import UploadIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/EditOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SearchIcon from '@mui/icons-material/Search';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import CategoryIcon from '@mui/icons-material/Category';
 import { api } from './api.js';
 import ArticleDialog from './ArticleDialog.jsx';
 import CategoryDialog from './CategoryDialog.jsx';
-import { hasUuid } from './uuid.js';
-import NewBadge from './NewBadge.jsx';
-import BarcodeAssignButton from './BarcodeAssignButton.jsx';
+import ArticlesPaper from './ArticlesPaper.jsx';
+import CategoryFilterChips from './CategoryFilterChips.jsx';
 import { theme } from './theme.js';
-
-const euroFormat = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
-const money = (v) => (v === null || v === undefined ? '—' : euroFormat.format(Number(v)));
-
-const MIN_SEARCH_CHARS = 3;
-const DEFAULT_PAGE_SIZE = 25;
-const TABLE_ROW_HEIGHT = 42;
-const TABLE_HEADER_HEIGHT = 48;
-
-function compactLength(text) {
-  return text.replace(/\s/g, '').length;
-}
-
-function effectiveSearchQuery(query) {
-  return compactLength(query) >= MIN_SEARCH_CHARS ? query.trim() : '';
-}
-
-function categoryFilterKey(categoryId) {
-  return categoryId == null ? 'none' : categoryId;
-}
-
-function categoryFiltersEqual(a, b) {
-  if (a.length !== b.length) return false;
-  const left = [...a].map(String).sort();
-  const right = [...b].map(String).sort();
-  return left.every((value, index) => value === right[index]);
-}
-
-function formatCategoryFilterLabel(categoryCounts, categoryFilters) {
-  if (!categoryFilters.length) return '';
-  const names = categoryCounts
-    .filter((cat) => categoryFilters.includes(categoryFilterKey(cat.id)))
-    .map((cat) => cat.name);
-  return names.length ? ` in ${names.join(', ')}` : '';
-}
-
-function mediaQueryString(theme, key) {
-  return theme.breakpoints[key]('sm').replace(/^@media\s*/, '');
-}
-
-function hasMissingVariantBarcode(variations) {
-  return variations.some((v) => !String(v.barcode ?? '').trim());
-}
-
-function articleBarcodeLabel(article) {
-  const variations = article.variations || [];
-  const hasVar = variations.length > 0;
-  const articleBarcode = String(article.barcode ?? '').trim();
-
-  if (hasVar) {
-    if (!articleBarcode && hasMissingVariantBarcode(variations)) {
-      return 'missing';
-    }
-    return '—';
-  }
-
-  return articleBarcode || null;
-}
-
-function isBarcodeCapturing(barcodeCapture, articleId, variationId = null) {
-  if (!barcodeCapture) return false;
-  return barcodeCapture.articleId === articleId && barcodeCapture.variationId === variationId;
-}
-
-function renderBarcodeValue(barcode, articleId, variationId, barcodeCapture, barcodeCaptureBuffer, onStartBarcodeCapture) {
-  const active = isBarcodeCapturing(barcodeCapture, articleId, variationId);
-  const hasBarcode = String(barcode ?? '').trim();
-
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <BarcodeAssignButton
-        active={active}
-        onStart={() => onStartBarcodeCapture(articleId, variationId)}
-      />
-      {active && barcodeCaptureBuffer ? (
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-          {barcodeCaptureBuffer}
-        </Typography>
-      ) : (
-        hasBarcode && <span>{barcode}</span>
-      )}
-    </Box>
-  );
-}
-
-class ArticleRow extends Component {
-  state = { open: false };
-
-  toggleOpen = () => {
-    this.setState((prev) => ({ open: !prev.open }));
-  };
-
-  render() {
-    const {
-      article, onEdit, onDelete, barcodeCapture, barcodeCaptureBuffer, onStartBarcodeCapture,
-    } = this.props;
-    const { open } = this.state;
-    const variations = article.variations || [];
-    const hasVar = variations.length > 0;
-    const barcodeLabel = articleBarcodeLabel(article);
-
-    return (
-      <>
-        <TableRow hover sx={{ '& > *': { borderBottom: 'unset' } }}>
-          <TableCell padding="checkbox">
-            <Tooltip title="Edit">
-              <IconButton size="small" onClick={() => onEdit(article)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </TableCell>
-          <TableCell padding="checkbox">
-            {hasVar && (
-              <IconButton size="small" onClick={this.toggleOpen}>
-                {open ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
-              </IconButton>
-            )}
-          </TableCell>
-          <TableCell>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography fontWeight={600}>{article.item_name}</Typography>
-              {!hasUuid(article.item_uuid) && <NewBadge />}
-            </Box>
-          </TableCell>
-          <TableCell>{article.category && <Chip size="small" label={article.category} />}</TableCell>
-          <TableCell align="right">{article.tax_rate != null ? `${Number(article.tax_rate).toFixed(0)}%` : '—'}</TableCell>
-          <TableCell align="right">
-            {hasVar ? <Chip size="small" variant="outlined" label={`${variations.length} variations`} /> : money(article.price)}
-          </TableCell>
-          <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-            {hasVar ? (
-              barcodeLabel === 'missing' ? 'missing' : '—'
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-start' }}>
-                {renderBarcodeValue(
-                  article.barcode,
-                  article.id,
-                  null,
-                  barcodeCapture,
-                  barcodeCaptureBuffer,
-                  onStartBarcodeCapture,
-                )}
-                {!hasUuid(article.variant_uuid) && <NewBadge />}
-              </Box>
-            )}
-          </TableCell>
-          <TableCell align="center">{article.visible_online ? <Chip size="small" color="primary" variant="outlined" label="online" /> : '—'}</TableCell>
-          <TableCell align="right">
-            <Tooltip title="Delete">
-              <IconButton size="small" onClick={() => onDelete(article)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </TableCell>
-        </TableRow>
-        {hasVar && (
-          <TableRow>
-            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
-              <Collapse in={open} timeout="auto" unmountOnExit>
-                <Box sx={{ m: 1, ml: { xs: 1, sm: 6 } }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Variation</TableCell>
-                        <TableCell align="right">Price</TableCell>
-                        <TableCell align="right">Qty</TableCell>
-                        <TableCell align="right">Low</TableCell>
-                        <TableCell>Barcode</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {variations.map((v) => (
-                        <TableRow key={v.id}>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {v.variation_name}
-                              {!hasUuid(v.variant_uuid) && <NewBadge />}
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">{money(v.price)}</TableCell>
-                          <TableCell align="right">{v.quantity ?? '—'}</TableCell>
-                          <TableCell align="right">{v.low_threshold ?? '—'}</TableCell>
-                          <TableCell>
-                            {renderBarcodeValue(
-                              v.barcode,
-                              article.id,
-                              v.id,
-                              barcodeCapture,
-                              barcodeCaptureBuffer,
-                              onStartBarcodeCapture,
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Box>
-              </Collapse>
-            </TableCell>
-          </TableRow>
-        )}
-      </>
-    );
-  }
-}
-
-class TableNavigation extends Component {
-  render() {
-    const { page, pageSize, total, loading, onPageChange, onPageSizeChange, edge = 'bottom', compact = false } = this.props;
-    const borderSx = edge === 'top'
-      ? { borderBottom: 1, borderColor: 'divider' }
-      : { borderTop: 1, borderColor: 'divider' };
-
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: compact ? 'column' : { xs: 'column', sm: 'row' },
-          alignItems: compact ? 'stretch' : { xs: 'stretch', sm: 'center' },
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 2,
-          px: { xs: 1, sm: 2 },
-          py: 1.5,
-          ...borderSx,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-            Rows per page
-          </Typography>
-          <Select
-            size="small"
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          >
-            {[10, 25, 50, 100].map((n) => (
-              <MenuItem key={n} value={n}>{n}</MenuItem>
-            ))}
-          </Select>
-          <Typography variant="body2" color="text.secondary">
-            {total === 0
-              ? '0 items'
-              : `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, total)} of ${total}`}
-          </Typography>
-        </Box>
-        <Pagination
-          count={Math.max(1, Math.ceil(total / pageSize))}
-          page={page + 1}
-          onChange={(_, nextPage) => onPageChange(nextPage - 1)}
-          showFirstButton
-          showLastButton
-          siblingCount={compact ? 0 : 1}
-          boundaryCount={compact ? 1 : 1}
-          color="primary"
-          disabled={total === 0 || loading}
-          size={compact ? 'small' : 'medium'}
-          sx={{ alignSelf: compact ? 'center' : { xs: 'center', sm: 'auto' } }}
-        />
-      </Box>
-    );
-  }
-}
+import {
+  DEFAULT_PAGE_SIZE, effectiveSearchQuery, categoryFilterKey, categoryFiltersEqual, mediaQueryString,
+} from './articleTableUtils.js';
 
 class App extends Component {
   state = {
@@ -658,142 +391,13 @@ class App extends Component {
     }
   };
 
-  renderCategoryChips() {
-    const { categoryCounts, categoryFilters } = this.state;
-    if (!categoryCounts.length) return null;
-
-    return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-        {categoryCounts.map((cat) => {
-          const filterKey = categoryFilterKey(cat.id);
-          const active = categoryFilters.includes(filterKey);
-          return (
-            <Chip
-              key={String(filterKey)}
-              size="small"
-              label={`${cat.name} (${cat.count})`}
-              color={active ? 'primary' : 'default'}
-              variant={active ? 'filled' : 'outlined'}
-              onClick={() => (
-                active
-                  ? this.removeCategoryFilter(filterKey)
-                  : this.addCategoryFilter(filterKey)
-              )}
-              onDelete={active ? () => this.removeCategoryFilter(filterKey) : undefined}
-              deleteIcon={<DeleteIcon />}
-            />
-          );
-        })}
-      </Box>
-    );
-  }
-
-  renderArticlesPaper() {
-    const {
-      articles, total, page, pageSize, loading, search, isMobile, missingBarcodeOnly,
-      categoryFilters, categoryCounts,
-    } = this.state;
-    const categoryLabel = formatCategoryFilterLabel(categoryCounts, categoryFilters);
-    const hasCategoryFilter = categoryFilters.length > 0;
-    const showEmptyState = !loading && total === 0;
-    const isInitialLoad = loading && articles.length === 0;
-    const tableMinHeight = TABLE_HEADER_HEIGHT + pageSize * TABLE_ROW_HEIGHT;
-
-    if (showEmptyState) {
-      return (
-        <Box sx={{ p: 6, textAlign: 'center', color: 'text.secondary' }}>
-          <Typography>
-            {missingBarcodeOnly
-              ? (search
-                ? `No articles with missing barcodes match "${search}"${categoryLabel}.`
-                : (hasCategoryFilter
-                  ? `No articles with missing barcodes${categoryLabel}.`
-                  : 'No articles with missing barcodes.'))
-              : (search
-                ? `No articles match "${search}"${categoryLabel}.`
-                : (hasCategoryFilter
-                  ? `No articles${categoryLabel}.`
-                  : 'No articles. Import a CSV or create one.'))}
-          </Typography>
-        </Box>
-      );
-    }
-
-    if (isInitialLoad) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6, minHeight: tableMinHeight + 120 }}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-
-    return (
-      <>
-        <TableNavigation
-          edge="top"
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          loading={loading}
-          onPageChange={(nextPage) => this.setState({ page: nextPage })}
-          onPageSizeChange={this.handlePageSizeChange}
-          compact={isMobile}
-        />
-        <TableContainer
-          sx={{
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            minHeight: tableMinHeight,
-          }}
-        >
-          <Table size="small" sx={{ minWidth: 720 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox" />
-                <TableCell padding="checkbox" />
-                <TableCell>Item name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell align="right">Tax</TableCell>
-                <TableCell align="right">Price / Variations</TableCell>
-                <TableCell>Barcode</TableCell>
-                <TableCell align="center">Online</TableCell>
-                <TableCell align="right" />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {articles.map((a) => (
-                <ArticleRow
-                  key={a.id}
-                  article={a}
-                  barcodeCapture={this.state.barcodeCapture}
-                  barcodeCaptureBuffer={this.state.barcodeCaptureBuffer}
-                  onStartBarcodeCapture={this.startBarcodeCapture}
-                  onEdit={(art) => this.setState({ dialog: { open: true, initial: art } })}
-                  onDelete={this.handleDelete}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TableNavigation
-          edge="bottom"
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          loading={loading}
-          onPageChange={(nextPage) => this.setState({ page: nextPage })}
-          onPageSizeChange={this.handlePageSizeChange}
-          compact={isMobile}
-        />
-      </>
-    );
-  }
-
   render() {
     const { user, onLogout } = this.props;
     const {
       articles, total, page, pageSize, stats, loading, query, search,
-      missingBarcodeOnly, dialog, categoriesOpen, categories, toast, isMobile,
+      missingBarcodeOnly, categoryFilters, categoryCounts,
+      dialog, categoriesOpen, categories, toast, isMobile,
+      barcodeCapture, barcodeCaptureBuffer,
     } = this.state;
 
     return (
@@ -970,11 +574,34 @@ class App extends Component {
               </Button>
             </Box>
             </Box>
-            {this.renderCategoryChips()}
+            <CategoryFilterChips
+              categoryCounts={categoryCounts}
+              categoryFilters={categoryFilters}
+              onAddCategoryFilter={this.addCategoryFilter}
+              onRemoveCategoryFilter={this.removeCategoryFilter}
+            />
           </Box>
 
           <Paper variant="outlined" sx={{ position: 'relative' }}>
-            {this.renderArticlesPaper()}
+            <ArticlesPaper
+              articles={articles}
+              total={total}
+              page={page}
+              pageSize={pageSize}
+              loading={loading}
+              search={search}
+              isMobile={isMobile}
+              missingBarcodeOnly={missingBarcodeOnly}
+              categoryFilters={categoryFilters}
+              categoryCounts={categoryCounts}
+              barcodeCapture={barcodeCapture}
+              barcodeCaptureBuffer={barcodeCaptureBuffer}
+              onStartBarcodeCapture={this.startBarcodeCapture}
+              onEdit={(art) => this.setState({ dialog: { open: true, initial: art } })}
+              onDelete={this.handleDelete}
+              onPageChange={(nextPage) => this.setState({ page: nextPage })}
+              onPageSizeChange={this.handlePageSizeChange}
+            />
           </Paper>
         </Container>
 

@@ -42,6 +42,28 @@ export const theme = createTheme({
         },
       },
     },
+    // scrollbar-gutter already reserves scrollbar space; MUI's scroll lock adds
+    // padding-right on top of that and shifts the layout. Disable it and block
+    // scroll via ModalScrollLock instead so the scrollbar stays visible.
+    MuiModal: {
+      defaultProps: {
+        disableScrollLock: true,
+      },
+      styleOverrides: {
+        root: {
+          width: '100vw',
+          right: 'auto',
+        },
+      },
+    },
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          width: '100vw',
+          right: 'auto',
+        },
+      },
+    },
     MuiAppBar: {
       styleOverrides: {
         root: {

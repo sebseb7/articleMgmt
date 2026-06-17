@@ -274,7 +274,7 @@ class App extends Component {
       && !dialog.open
       && !loading
     ) {
-      this.searchRef.current?.focus();
+      this.searchRef.current?.focus({ preventScroll: true });
     }
 
     if (prevState.dialog.open !== dialog.open) {

@@ -60,8 +60,7 @@ class App extends Component {
     const { page, pageSize, search, query, dialog } = this.state;
 
     if (
-      prevState.page !== page
-      || prevState.pageSize !== pageSize
+      prevState.pageSize !== pageSize
       || prevState.search !== search
       || !categoryFiltersEqual(prevState.categoryFilters, this.state.categoryFilters)
       || prevState.missingBarcodeOnly !== this.state.missingBarcodeOnly
@@ -206,6 +205,18 @@ class App extends Component {
     }));
   };
 
+  applyListResult = (seq, result) => {
+    if (seq !== this.loadSeq) return;
+    this.setState({
+      articles: result.articles,
+      total: result.total,
+      pageSize: result.pageSize,
+      stats: result.stats,
+      categoryCounts: result.categoryCounts,
+      loading: false,
+    });
+  };
+
   load = async (
     nextPage = this.state.page,
     nextPageSize = this.state.pageSize,
@@ -214,7 +225,9 @@ class App extends Component {
     nextCategoryFilters = this.state.categoryFilters,
   ) => {
     const seq = ++this.loadSeq;
-    this.setState({ loading: true });
+    if (this.state.articles.length === 0) {
+      this.setState({ loading: true });
+    }
     try {
       const res = await api.list({
         page: nextPage + 1,
@@ -224,27 +237,30 @@ class App extends Component {
         categoryIds: nextCategoryFilters,
       });
       if (seq !== this.loadSeq) return;
+
       const counts = res.categoryCounts ?? [];
       const validFilters = nextCategoryFilters.filter((filterKey) =>
         counts.some((cat) => categoryFilterKey(cat.id) === filterKey),
       );
       if (!categoryFiltersEqual(validFilters, nextCategoryFilters)) {
-        this.setState({ categoryFilters: validFilters, loading: false });
+        if (seq !== this.loadSeq) return;
+        this.setState({ categoryFilters: validFilters });
         await this.load(nextPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, validFilters);
         return;
       }
       if (res.items.length === 0 && res.total > 0 && nextPage > 0) {
-        this.setState({ page: nextPage - 1, loading: false });
+        if (seq !== this.loadSeq) return;
+        const correctedPage = nextPage - 1;
+        this.setState({ page: correctedPage });
+        await this.load(correctedPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, nextCategoryFilters);
         return;
       }
-      this.setState({
+      this.applyListResult(seq, {
         articles: res.items,
         total: res.total,
-        page: res.page - 1,
         pageSize: res.pageSize,
         stats: res.stats,
         categoryCounts: counts,
-        loading: false,
       });
     } catch (e) {
       if (seq !== this.loadSeq) return;
@@ -321,6 +337,12 @@ class App extends Component {
 
   handlePageSizeChange = (nextPageSize) => {
     this.setState({ pageSize: nextPageSize, page: 0 });
+  };
+
+  handlePageChange = (nextPage) => {
+    this.setState({ page: nextPage });
+    const { pageSize, search, missingBarcodeOnly, categoryFilters } = this.state;
+    this.load(nextPage, pageSize, search, missingBarcodeOnly, categoryFilters);
   };
 
   handleImportFile = async (e) => {
@@ -599,7 +621,7 @@ class App extends Component {
               onStartBarcodeCapture={this.startBarcodeCapture}
               onEdit={(art) => this.setState({ dialog: { open: true, initial: art } })}
               onDelete={this.handleDelete}
-              onPageChange={(nextPage) => this.setState({ page: nextPage })}
+              onPageChange={this.handlePageChange}
               onPageSizeChange={this.handlePageSizeChange}
             />
           </Paper>

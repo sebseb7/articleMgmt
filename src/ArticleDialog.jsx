@@ -39,14 +39,16 @@ class BarcodeField extends Component {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         sx={sx}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <Button size="small" onClick={this.handleGenerate} disabled={loading}>
-                Generate
-              </Button>
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                <Button size="small" onClick={this.handleGenerate} disabled={loading}>
+                  Generate
+                </Button>
+              </InputAdornment>
+            ),
+          },
         }}
       />
     );

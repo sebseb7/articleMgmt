@@ -540,7 +540,15 @@ class App extends Component {
                     bgcolor: 'background.paper',
                   },
                 }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
               <FormControlLabel
                 control={(

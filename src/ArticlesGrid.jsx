@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import {
   Box, Typography, Table, TableHead, TableBody, TableRow, TableCell,
-  IconButton, Chip, Tooltip,
+  IconButton, Chip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
@@ -104,11 +104,9 @@ class EditCellRenderer extends Component {
   render() {
     const { data, context } = this.props;
     return (
-      <Tooltip title="Edit">
-        <IconButton size="small" onClick={() => context.onEdit(data.article)}>
-          <EditIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <IconButton size="small" aria-label="Edit" onClick={() => context.onEdit(data.article)}>
+        <EditIcon fontSize="small" />
+      </IconButton>
     );
   }
 }
@@ -190,11 +188,9 @@ class DeleteCellRenderer extends Component {
   render() {
     const { data, context } = this.props;
     return (
-      <Tooltip title="Delete">
-        <IconButton size="small" onClick={() => context.onDelete(data.article)}>
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <IconButton size="small" aria-label="Delete" onClick={() => context.onDelete(data.article)}>
+        <DeleteIcon fontSize="small" />
+      </IconButton>
     );
   }
 }

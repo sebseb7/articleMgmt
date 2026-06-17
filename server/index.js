@@ -154,12 +154,18 @@ function buildArticleFilter(q) {
 }
 
 const missingBarcodeClause = `
-  EXISTS (SELECT 1 FROM variations v WHERE v.article_id = a.id)
-  AND IFNULL(TRIM(a.barcode), '') = ''
-  AND EXISTS (
-    SELECT 1 FROM variations v2
-    WHERE v2.article_id = a.id
-      AND IFNULL(TRIM(v2.barcode), '') = ''
+  (
+    NOT EXISTS (SELECT 1 FROM variations v WHERE v.article_id = a.id)
+    AND IFNULL(TRIM(a.barcode), '') = ''
+  )
+  OR (
+    EXISTS (SELECT 1 FROM variations v WHERE v.article_id = a.id)
+    AND IFNULL(TRIM(a.barcode), '') = ''
+    AND EXISTS (
+      SELECT 1 FROM variations v2
+      WHERE v2.article_id = a.id
+        AND IFNULL(TRIM(v2.barcode), '') = ''
+    )
   )
 `;
 
@@ -182,7 +188,7 @@ function buildArticleWhere({ q = '', missingBarcode = false, categoryIds } = {})
   }
 
   if (missingBarcode) {
-    parts.push(missingBarcodeClause);
+    parts.push(`(${missingBarcodeClause})`);
   }
 
   const ids = parseCategoryIds(categoryIds);

@@ -10,6 +10,7 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { api } from './api.js';
+import { withNoAutofill } from './textFieldUtils.js';
 
 export default class CategoryDialog extends Component {
   state = {
@@ -108,6 +109,7 @@ export default class CategoryDialog extends Component {
               value={newName}
               onChange={(e) => this.setState({ newName: e.target.value })}
               onKeyDown={(e) => e.key === 'Enter' && newName.trim() && this.handleAdd()}
+              slotProps={withNoAutofill()}
             />
             <Button
               variant="contained"
@@ -157,6 +159,7 @@ export default class CategoryDialog extends Component {
                             if (e.key === 'Escape') this.cancelEdit();
                           }}
                           autoFocus
+                          slotProps={withNoAutofill()}
                         />
                       ) : (
                         cat.name

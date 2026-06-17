@@ -255,7 +255,7 @@ function getStats() {
   return { articles, variations: explicitVars + standalone };
 }
 
-function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = false, categoryIds } = {}) {
+function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = false, categoryIds, includeMeta = true } = {}) {
   const { clause, params } = buildArticleWhere({ q, missingBarcode, categoryIds });
   const isAll = Number(pageSize) === 0;
   const limit = isAll ? null : Math.min(Math.max(1, Number(pageSize) || 25), 100);
@@ -299,8 +299,10 @@ function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = fal
     page: safePage,
     pageSize: effectivePageSize,
     pageCount,
-    stats: getStats(),
-    categoryCounts: getCategoryCounts({ q, missingBarcode }),
+    ...(includeMeta ? {
+      stats: getStats(),
+      categoryCounts: getCategoryCounts({ q, missingBarcode }),
+    } : {}),
   };
 }
 
@@ -337,6 +339,7 @@ app.get('/api/articles', requireAuth, (req, res) => {
     q: req.query.q,
     missingBarcode: req.query.missingBarcode === '1',
     categoryIds: req.query.categoryIds,
+    includeMeta: req.query.meta !== '0',
   });
   res.json(result);
 });

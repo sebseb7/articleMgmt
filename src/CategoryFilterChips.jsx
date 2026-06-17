@@ -1,9 +1,9 @@
-import { Component } from 'react';
+import { PureComponent } from 'react';
 import { Box, Chip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import { categoryFilterKey } from './articleTableUtils.js';
 
-export default class CategoryFilterChips extends Component {
+export default class CategoryFilterChips extends PureComponent {
   render() {
     const { categoryCounts, categoryFilters, onAddCategoryFilter, onRemoveCategoryFilter } = this.props;
     if (!categoryCounts.length) return null;

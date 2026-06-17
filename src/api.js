@@ -33,7 +33,7 @@ export const api = {
   logout: () =>
     fetch('/api/auth/logout', { method: 'POST', ...credentials }).then(json),
 
-  list: ({ page = 1, pageSize = 25, q = '', missingBarcode = false, categoryIds } = {}) => {
+  list: ({ page = 1, pageSize = 25, q = '', missingBarcode = false, categoryIds, includeMeta = true } = {}) => {
     const params = new URLSearchParams({
       page: String(page),
       pageSize: String(pageSize),
@@ -41,6 +41,7 @@ export const api = {
     if (q) params.set('q', q);
     if (missingBarcode) params.set('missingBarcode', '1');
     if (categoryIds?.length) params.set('categoryIds', categoryIds.map(String).join(','));
+    if (!includeMeta) params.set('meta', '0');
     return fetch(`/api/articles?${params}`, credentials).then(json);
   },
 

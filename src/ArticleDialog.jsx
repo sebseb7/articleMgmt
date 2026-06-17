@@ -10,6 +10,7 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
 import { api } from './api.js';
+import { withNoAutofill } from './textFieldUtils.js';
 
 class BarcodeField extends Component {
   state = { loading: false };
@@ -39,7 +40,7 @@ class BarcodeField extends Component {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         sx={sx}
-        slotProps={{
+        slotProps={withNoAutofill({
           input: {
             endAdornment: (
               <InputAdornment position="end">
@@ -49,7 +50,7 @@ class BarcodeField extends Component {
               </InputAdornment>
             ),
           },
-        }}
+        })}
       />
     );
   }
@@ -215,10 +216,10 @@ export default class ArticleDialog extends Component {
           </Typography>
           <Grid container spacing={2} sx={{ mt: 0, width: '100%' }}>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Item name" fullWidth value={form.item_name} onChange={this.set('item_name')} />
+              <TextField label="Item name" fullWidth value={form.item_name} onChange={this.set('item_name')} slotProps={withNoAutofill()} />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <TextField label="Tax rate (%)" type="number" fullWidth value={form.tax_rate} onChange={this.set('tax_rate')} />
+              <TextField label="Tax rate (%)" type="number" fullWidth value={form.tax_rate} onChange={this.set('tax_rate')} slotProps={withNoAutofill()} />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
               <FormControl fullWidth size="small">
@@ -246,7 +247,7 @@ export default class ArticleDialog extends Component {
               )}
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Image URL" fullWidth value={form.image_url} onChange={this.set('image_url')} />
+              <TextField label="Image URL" fullWidth value={form.image_url} onChange={this.set('image_url')} slotProps={withNoAutofill()} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <FormControlLabel control={<Switch checked={form.visible_online} onChange={this.setBool('visible_online')} />} label="Visible online" />
@@ -264,13 +265,13 @@ export default class ArticleDialog extends Component {
               </Typography>
               <Grid container spacing={2} sx={{ mt: 0, width: '100%' }}>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <TextField label="Price" type="number" fullWidth value={form.price} onChange={this.set('price')} />
+                  <TextField label="Price" type="number" fullWidth value={form.price} onChange={this.set('price')} slotProps={withNoAutofill()} />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <TextField label="Quantity" type="number" fullWidth value={form.quantity} onChange={this.set('quantity')} />
+                  <TextField label="Quantity" type="number" fullWidth value={form.quantity} onChange={this.set('quantity')} slotProps={withNoAutofill()} />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <TextField label="Low stock" type="number" fullWidth value={form.low_threshold} onChange={this.set('low_threshold')} />
+                  <TextField label="Low stock" type="number" fullWidth value={form.low_threshold} onChange={this.set('low_threshold')} slotProps={withNoAutofill()} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <BarcodeField
@@ -311,11 +312,11 @@ export default class ArticleDialog extends Component {
               <TableBody>
                 {form.variations.map((v, i) => (
                   <TableRow key={i}>
-                    <TableCell><TextField variant="standard" value={v.variation_name} onChange={(e) => this.setVar(i, 'variation_name', e.target.value)} /></TableCell>
+                    <TableCell><TextField variant="standard" value={v.variation_name} onChange={(e) => this.setVar(i, 'variation_name', e.target.value)} slotProps={withNoAutofill()} /></TableCell>
                     <TableCell>{!hasUuid(v.variant_uuid) && <NewBadge />}</TableCell>
-                    <TableCell align="right"><TextField variant="standard" type="number" value={v.price ?? ''} onChange={(e) => this.setVar(i, 'price', e.target.value)} sx={{ width: 80 }} /></TableCell>
-                    <TableCell align="right"><TextField variant="standard" type="number" value={v.quantity ?? ''} onChange={(e) => this.setVar(i, 'quantity', e.target.value)} sx={{ width: 60 }} /></TableCell>
-                    <TableCell align="right"><TextField variant="standard" type="number" value={v.low_threshold ?? ''} onChange={(e) => this.setVar(i, 'low_threshold', e.target.value)} sx={{ width: 60 }} /></TableCell>
+                    <TableCell align="right"><TextField variant="standard" type="number" value={v.price ?? ''} onChange={(e) => this.setVar(i, 'price', e.target.value)} sx={{ width: 80 }} slotProps={withNoAutofill()} /></TableCell>
+                    <TableCell align="right"><TextField variant="standard" type="number" value={v.quantity ?? ''} onChange={(e) => this.setVar(i, 'quantity', e.target.value)} sx={{ width: 60 }} slotProps={withNoAutofill()} /></TableCell>
+                    <TableCell align="right"><TextField variant="standard" type="number" value={v.low_threshold ?? ''} onChange={(e) => this.setVar(i, 'low_threshold', e.target.value)} sx={{ width: 60 }} slotProps={withNoAutofill()} /></TableCell>
                     <TableCell>
                       <BarcodeField
                         variant="standard"

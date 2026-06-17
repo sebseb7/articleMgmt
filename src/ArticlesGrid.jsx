@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { Component, PureComponent } from 'react';
 import {
   Box, Typography, Table, TableHead, TableBody, TableRow, TableCell,
   IconButton, Chip,
@@ -16,7 +16,6 @@ import {
   RowApiModule,
   RenderApiModule,
   CellStyleModule,
-  ValidationModule,
 } from 'ag-grid-community';
 import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
@@ -29,7 +28,6 @@ ModuleRegistry.registerModules([
   RowApiModule,
   RenderApiModule,
   CellStyleModule,
-  ...(import.meta.env.DEV ? [ValidationModule] : []),
 ]);
 
 const ARTICLE_ROW_HEIGHT = 52;
@@ -236,10 +234,36 @@ class VariationsDetailRenderer extends Component {
   }
 }
 
-export default class ArticlesGrid extends Component {
-  state = { expanded: new Set() };
+export default class ArticlesGrid extends PureComponent {
+  state = {
+    expanded: new Set(),
+    boundArticles: null,
+  };
+
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (nextProps.articles !== prevState.boundArticles) {
+      const patch = { boundArticles: nextProps.articles };
+      if (prevState.expanded.size > 0) {
+        patch.expanded = new Set();
+      }
+      return patch;
+    }
+    return null;
+  }
 
   gridApi = null;
+
+  gridContext = {
+    onEdit: (article) => this.props.onEdit(article),
+    onDelete: (article) => this.props.onDelete(article),
+    onStartBarcodeCapture: (articleId, variationId) => (
+      this.props.onStartBarcodeCapture(articleId, variationId)
+    ),
+    onToggle: (id) => this.toggleExpand(id),
+    isExpanded: (id) => this.isExpanded(id),
+    barcodeCapture: null,
+    barcodeCaptureBuffer: '',
+  };
 
   columnDefs = [
     {
@@ -331,9 +355,6 @@ export default class ArticlesGrid extends Component {
   };
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.articles !== this.props.articles && this.state.expanded.size > 0) {
-      this.setState({ expanded: new Set() });
-    }
     const barcodeChanged =
       prevProps.barcodeCapture !== this.props.barcodeCapture
       || prevProps.barcodeCaptureBuffer !== this.props.barcodeCaptureBuffer;
@@ -406,19 +427,10 @@ export default class ArticlesGrid extends Component {
   };
 
   render() {
-    const {
-      barcodeCapture, barcodeCaptureBuffer, onStartBarcodeCapture, onEdit, onDelete,
-    } = this.props;
+    const { barcodeCapture, barcodeCaptureBuffer } = this.props;
 
-    const context = {
-      onEdit,
-      onDelete,
-      onToggle: this.toggleExpand,
-      isExpanded: this.isExpanded,
-      barcodeCapture,
-      barcodeCaptureBuffer,
-      onStartBarcodeCapture,
-    };
+    this.gridContext.barcodeCapture = barcodeCapture;
+    this.gridContext.barcodeCaptureBuffer = barcodeCaptureBuffer;
 
     return (
       <Box
@@ -440,13 +452,14 @@ export default class ArticlesGrid extends Component {
           rowData={this.getRowData()}
           columnDefs={this.columnDefs}
           defaultColDef={this.defaultColDef}
-          context={context}
+          context={this.gridContext}
           getRowId={this.getRowId}
           isFullWidthRow={this.isFullWidthRow}
           fullWidthCellRenderer={VariationsDetailRenderer}
           getRowHeight={this.getRowHeight}
           headerHeight={48}
           suppressCellFocus
+          animateRows={false}
           onGridReady={this.handleGridReady}
         />
       </Box>

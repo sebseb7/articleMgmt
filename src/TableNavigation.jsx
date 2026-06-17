@@ -1,8 +1,8 @@
-import { Component } from 'react';
+import { PureComponent } from 'react';
 import { Box, Typography, Select, MenuItem, Pagination } from '@mui/material';
 import { ALL_PAGE_SIZE, PAGE_SIZE_OPTIONS, isAllPageSize } from './articleTableUtils.js';
 
-export default class TableNavigation extends Component {
+export default class TableNavigation extends PureComponent {
   render() {
     const { page, pageSize, total, onPageChange, onPageSizeChange, edge = 'bottom', compact = false } = this.props;
     const allRows = isAllPageSize(pageSize);

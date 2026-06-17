@@ -1,21 +1,9 @@
 import { Component, createRef } from 'react';
-import {
-  AppBar, Toolbar, Typography, Button, Box, Container, Paper, TextField,
-  InputAdornment, IconButton, Tooltip, FormControlLabel, Switch,
-} from '@mui/material';
 import { enqueueSnackbar } from 'notistack';
-import UploadIcon from '@mui/icons-material/UploadFile';
-import DownloadIcon from '@mui/icons-material/Download';
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import LogoutIcon from '@mui/icons-material/Logout';
-import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import CategoryIcon from '@mui/icons-material/Category';
 import { api } from './api.js';
 import ArticleDialog from './ArticleDialog.jsx';
 import CategoryDialog from './CategoryDialog.jsx';
-import ArticlesPaper from './ArticlesPaper.jsx';
-import CategoryFilterChips from './CategoryFilterChips.jsx';
+import AppShell from './AppShell.jsx';
 import { theme } from './theme.js';
 import {
   DEFAULT_PAGE_SIZE, effectiveSearchQuery, categoryFilterKey, categoryFiltersEqual, mediaQueryString,
@@ -42,7 +30,6 @@ class App extends Component {
     barcodeCaptureBuffer: '',
   };
 
-  fileRef = createRef();
   searchRef = createRef();
   loadSeq = 0;
 
@@ -57,15 +44,20 @@ class App extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { page, pageSize, search, query, dialog } = this.state;
+    const { page, pageSize, search, query, dialog, categoryFilters, missingBarcodeOnly } = this.state;
 
     if (
       prevState.pageSize !== pageSize
       || prevState.search !== search
-      || !categoryFiltersEqual(prevState.categoryFilters, this.state.categoryFilters)
-      || prevState.missingBarcodeOnly !== this.state.missingBarcodeOnly
+      || !categoryFiltersEqual(prevState.categoryFilters, categoryFilters)
+      || prevState.missingBarcodeOnly !== missingBarcodeOnly
     ) {
-      this.load(page, pageSize, search);
+      const includeListMeta =
+        prevState.search !== search
+        || prevState.missingBarcodeOnly !== missingBarcodeOnly;
+      this.load(page, pageSize, search, missingBarcodeOnly, categoryFilters, {
+        includeListMeta,
+      });
     }
 
     if (prevState.query !== query) {
@@ -206,16 +198,22 @@ class App extends Component {
     }));
   };
 
-  applyListResult = (seq, result) => {
+  applyListResult = (seq, result, { includeListMeta = true, page } = {}) => {
     if (seq !== this.loadSeq) return;
-    this.setState({
+    const patch = {
       articles: result.articles,
       total: result.total,
       pageSize: result.pageSize,
-      stats: result.stats,
-      categoryCounts: result.categoryCounts,
       loading: false,
-    });
+    };
+    if (page !== undefined) {
+      patch.page = page;
+    }
+    if (includeListMeta) {
+      patch.stats = result.stats;
+      patch.categoryCounts = result.categoryCounts;
+    }
+    this.setState(patch);
   };
 
   load = async (
@@ -224,6 +222,7 @@ class App extends Component {
     nextSearch = this.state.search,
     nextMissingBarcodeOnly = this.state.missingBarcodeOnly,
     nextCategoryFilters = this.state.categoryFilters,
+    { includeListMeta = true, page: pageOverride } = {},
   ) => {
     const seq = ++this.loadSeq;
     if (this.state.articles.length === 0) {
@@ -236,24 +235,31 @@ class App extends Component {
         q: nextSearch,
         missingBarcode: nextMissingBarcodeOnly,
         categoryIds: nextCategoryFilters,
+        includeMeta: includeListMeta,
       });
       if (seq !== this.loadSeq) return;
 
-      const counts = res.categoryCounts ?? [];
-      const validFilters = nextCategoryFilters.filter((filterKey) =>
-        counts.some((cat) => categoryFilterKey(cat.id) === filterKey),
-      );
-      if (!categoryFiltersEqual(validFilters, nextCategoryFilters)) {
-        if (seq !== this.loadSeq) return;
-        this.setState({ categoryFilters: validFilters });
-        await this.load(nextPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, validFilters);
-        return;
+      if (includeListMeta) {
+        const counts = res.categoryCounts ?? [];
+        const validFilters = nextCategoryFilters.filter((filterKey) =>
+          counts.some((cat) => categoryFilterKey(cat.id) === filterKey),
+        );
+        if (!categoryFiltersEqual(validFilters, nextCategoryFilters)) {
+          if (seq !== this.loadSeq) return;
+          this.setState({ categoryFilters: validFilters });
+          await this.load(nextPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, validFilters, {
+            includeListMeta,
+          });
+          return;
+        }
       }
       if (res.items.length === 0 && res.total > 0 && nextPage > 0) {
         if (seq !== this.loadSeq) return;
         const correctedPage = nextPage - 1;
-        this.setState({ page: correctedPage });
-        await this.load(correctedPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, nextCategoryFilters);
+        await this.load(correctedPage, nextPageSize, nextSearch, nextMissingBarcodeOnly, nextCategoryFilters, {
+          includeListMeta,
+          page: correctedPage,
+        });
         return;
       }
       this.applyListResult(seq, {
@@ -261,8 +267,8 @@ class App extends Component {
         total: res.total,
         pageSize: res.pageSize,
         stats: res.stats,
-        categoryCounts: counts,
-      });
+        categoryCounts: res.categoryCounts,
+      }, { includeListMeta, page: pageOverride });
     } catch (e) {
       if (seq !== this.loadSeq) return;
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
@@ -341,9 +347,11 @@ class App extends Component {
   };
 
   handlePageChange = (nextPage) => {
-    this.setState({ page: nextPage });
     const { pageSize, search, missingBarcodeOnly, categoryFilters } = this.state;
-    this.load(nextPage, pageSize, search, missingBarcodeOnly, categoryFilters);
+    this.load(nextPage, pageSize, search, missingBarcodeOnly, categoryFilters, {
+      includeListMeta: false,
+      page: nextPage,
+    });
   };
 
   handleImportFile = async (e) => {
@@ -414,6 +422,46 @@ class App extends Component {
     }
   };
 
+  handleQueryChange = (query) => {
+    this.setState({ query });
+  };
+
+  handleMissingBarcodeChange = (missingBarcodeOnly) => {
+    this.setState({ missingBarcodeOnly, page: 0 });
+  };
+
+  handleSearchEnter = () => {
+    const { query } = this.state;
+    this.applySearch(query);
+    this.selectSearchText();
+  };
+
+  openNewArticle = () => {
+    this.setState({ dialog: { open: true, initial: null } });
+  };
+
+  openEditArticle = (article) => {
+    this.setState({ dialog: { open: true, initial: article } });
+  };
+
+  closeArticleDialog = () => {
+    this.setState({ dialog: { open: false, initial: null } });
+  };
+
+  openCategoriesDialog = () => {
+    this.setState({ categoriesOpen: true });
+  };
+
+  closeCategoriesDialog = () => {
+    this.setState({ categoriesOpen: false });
+  };
+
+  handleCategoriesChanged = async () => {
+    const { page, pageSize, search } = this.state;
+    await this.loadCategories();
+    await this.load(page, pageSize, search);
+  };
+
   render() {
     const { user, onLogout } = this.props;
     const {
@@ -424,237 +472,57 @@ class App extends Component {
     } = this.state;
 
     return (
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-        <AppBar position="static" elevation={0}>
-          <Toolbar
-            sx={{
-              gap: 1,
-              flexWrap: 'wrap',
-              py: { xs: 1, sm: 0 },
-              minHeight: { xs: 'auto', sm: 64 },
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                flexGrow: 1,
-                fontSize: { xs: '1rem', sm: '1.25rem' },
-                width: { xs: '100%', md: 'auto' },
-                lineHeight: 1.3,
-              }}
-            >
-              SumUp Article Editor
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 0.5,
-                width: { xs: '100%', md: 'auto' },
-                justifyContent: { xs: 'flex-end', md: 'flex-start' },
-              }}
-            >
-              <input ref={this.fileRef} type="file" accept=".csv,text/csv" hidden onChange={this.handleImportFile} />
-              {isMobile ? (
-                <>
-                  <Tooltip title="Import CSV">
-                    <IconButton color="inherit" onClick={() => this.fileRef.current?.click()}>
-                      <UploadIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Export CSV">
-                    <IconButton color="inherit" onClick={this.handleExport}>
-                      <DownloadIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Flush DB">
-                    <IconButton color="inherit" onClick={this.handleFlushDb}>
-                      <DeleteSweepIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={`Logout (${user.username})`}>
-                    <IconButton color="inherit" onClick={onLogout}>
-                      <LogoutIcon />
-                    </IconButton>
-                  </Tooltip>
-                </>
-              ) : (
-                <>
-                  <Button color="inherit" startIcon={<UploadIcon />} onClick={() => this.fileRef.current?.click()}>
-                    Import CSV
-                  </Button>
-                  <Button color="inherit" startIcon={<DownloadIcon />} onClick={this.handleExport}>
-                    Export CSV
-                  </Button>
-                  <Button color="inherit" startIcon={<DeleteSweepIcon />} onClick={this.handleFlushDb}>
-                    Flush DB
-                  </Button>
-                  <Typography variant="body2" sx={{ opacity: 0.9, mx: 0.5 }}>
-                    {user.username}
-                  </Typography>
-                  <Button color="inherit" startIcon={<LogoutIcon />} onClick={onLogout}>
-                    Logout
-                  </Button>
-                </>
-              )}
-            </Box>
-          </Toolbar>
-        </AppBar>
-
-        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 3 } }}>
-          <Box sx={{ mb: 2 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'stretch', sm: 'center' },
-                gap: 2,
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  flexGrow: 1,
-                  width: '100%',
-                  maxWidth: { xs: 'none', sm: 560 },
-                }}
-              >
-              <TextField
-                inputRef={this.searchRef}
-                size="small"
-                placeholder={isMobile ? 'Search or scan barcode…' : 'Search or scan barcode (min. 3 characters)…'}
-                value={query}
-                onChange={(e) => this.setState({ query: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    this.applySearch(query);
-                    this.selectSearchText();
-                  }
-                }}
-                sx={{
-                  flexGrow: 1,
-                  width: '100%',
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'background.paper',
-                  },
-                }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <FormControlLabel
-                control={(
-                  <Switch
-                    size="small"
-                    checked={missingBarcodeOnly}
-                    onChange={(e) => this.setState({
-                      missingBarcodeOnly: e.target.checked,
-                      page: 0,
-                    })}
-                  />
-                )}
-                label={isMobile ? 'Missing' : 'Missing barcode'}
-                sx={{ flexShrink: 0, m: 0, whiteSpace: 'nowrap' }}
-              />
-            </Box>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 2,
-                flexWrap: 'wrap',
-                width: { xs: '100%', sm: 'auto' },
-              }}
-            >
-              <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
-                {stats.articles} articles · {stats.variations} variations
-              </Typography>
-              {isMobile ? (
-                <Tooltip title="Categories">
-                  <IconButton onClick={() => this.setState({ categoriesOpen: true })} color="primary">
-                    <CategoryIcon />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <Button
-                  variant="outlined"
-                  startIcon={<CategoryIcon />}
-                  onClick={() => this.setState({ categoriesOpen: true })}
-                  sx={{ flexShrink: 0 }}
-                >
-                  Categories
-                </Button>
-              )}
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => this.setState({ dialog: { open: true, initial: null } })}
-                sx={{ flexShrink: 0 }}
-              >
-                {isMobile ? 'New' : 'New article'}
-              </Button>
-            </Box>
-            </Box>
-            <CategoryFilterChips
-              categoryCounts={categoryCounts}
-              categoryFilters={categoryFilters}
-              onAddCategoryFilter={this.addCategoryFilter}
-              onRemoveCategoryFilter={this.removeCategoryFilter}
-            />
-          </Box>
-
-          <Paper variant="outlined" sx={{ position: 'relative' }}>
-            <ArticlesPaper
-              articles={articles}
-              total={total}
-              page={page}
-              pageSize={pageSize}
-              loading={loading}
-              search={search}
-              isMobile={isMobile}
-              missingBarcodeOnly={missingBarcodeOnly}
-              categoryFilters={categoryFilters}
-              categoryCounts={categoryCounts}
-              barcodeCapture={barcodeCapture}
-              barcodeCaptureBuffer={barcodeCaptureBuffer}
-              onStartBarcodeCapture={this.startBarcodeCapture}
-              onEdit={(art) => this.setState({ dialog: { open: true, initial: art } })}
-              onDelete={this.handleDelete}
-              onPageChange={this.handlePageChange}
-              onPageSizeChange={this.handlePageSizeChange}
-            />
-          </Paper>
-        </Container>
+      <>
+        <AppShell
+          user={user}
+          onLogout={onLogout}
+          searchRef={this.searchRef}
+          query={query}
+          stats={stats}
+          isMobile={isMobile}
+          missingBarcodeOnly={missingBarcodeOnly}
+          categoryCounts={categoryCounts}
+          categoryFilters={categoryFilters}
+          onQueryChange={this.handleQueryChange}
+          onMissingBarcodeChange={this.handleMissingBarcodeChange}
+          onSearchEnter={this.handleSearchEnter}
+          onAddCategoryFilter={this.addCategoryFilter}
+          onRemoveCategoryFilter={this.removeCategoryFilter}
+          onOpenCategories={this.openCategoriesDialog}
+          onNewArticle={this.openNewArticle}
+          onImportFile={this.handleImportFile}
+          onExport={this.handleExport}
+          onFlushDb={this.handleFlushDb}
+          articles={articles}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          loading={loading}
+          search={search}
+          barcodeCapture={barcodeCapture}
+          barcodeCaptureBuffer={barcodeCaptureBuffer}
+          onStartBarcodeCapture={this.startBarcodeCapture}
+          onEditArticle={this.openEditArticle}
+          onDeleteArticle={this.handleDelete}
+          onPageChange={this.handlePageChange}
+          onPageSizeChange={this.handlePageSizeChange}
+        />
 
         <ArticleDialog
           open={dialog.open}
           initial={dialog.initial}
           categories={categories}
-          onManageCategories={() => this.setState({ categoriesOpen: true })}
-          onClose={() => this.setState({ dialog: { open: false, initial: null } })}
+          onManageCategories={this.openCategoriesDialog}
+          onClose={this.closeArticleDialog}
           onSave={this.handleSave}
         />
 
         <CategoryDialog
           open={categoriesOpen}
-          onClose={() => this.setState({ categoriesOpen: false })}
-          onChanged={async () => {
-            const { page, pageSize, search } = this.state;
-            await this.loadCategories();
-            await this.load(page, pageSize, search);
-          }}
+          onClose={this.closeCategoriesDialog}
+          onChanged={this.handleCategoriesChanged}
         />
-      </Box>
+      </>
     );
   }
 }

@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { api } from './api.js';
+import { withNoAutofill } from './textFieldUtils.js';
 
 export default class Login extends Component {
   state = {
@@ -54,6 +55,7 @@ export default class Login extends Component {
           sx={{ width: '100%', maxWidth: 400, p: 4 }}
           component="form"
           onSubmit={this.handleSubmit}
+          autoComplete="off"
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
             <LockOutlinedIcon color="primary" />
@@ -73,19 +75,19 @@ export default class Login extends Component {
             label="Username"
             fullWidth
             autoFocus
-            autoComplete="username"
             value={username}
             onChange={(e) => this.setState({ username: e.target.value })}
             sx={{ mb: 2 }}
+            slotProps={withNoAutofill()}
           />
           <TextField
             label="Password"
             type="password"
             fullWidth
-            autoComplete="current-password"
             value={password}
             onChange={(e) => this.setState({ password: e.target.value })}
             sx={{ mb: 3 }}
+            slotProps={withNoAutofill()}
           />
           <Button
             type="submit"

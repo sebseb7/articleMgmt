@@ -3,7 +3,7 @@ import {
   AppBar, Toolbar, Typography, Button, Box, Container, Paper, Table, TableHead,
   TableBody, TableRow, TableCell, IconButton, Collapse, Chip, TextField,
   InputAdornment, Snackbar, Alert, CircularProgress, TableContainer, Tooltip,
-  Pagination, Select, MenuItem,
+  Pagination, Select, MenuItem, FormControlLabel, Switch,
 } from '@mui/material';
 import UploadIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -41,6 +41,25 @@ function mediaQueryString(theme, key) {
   return theme.breakpoints[key]('sm').replace(/^@media\s*/, '');
 }
 
+function hasMissingVariantBarcode(variations) {
+  return variations.some((v) => !String(v.barcode ?? '').trim());
+}
+
+function articleBarcodeLabel(article) {
+  const variations = article.variations || [];
+  const hasVar = variations.length > 0;
+  const articleBarcode = String(article.barcode ?? '').trim();
+
+  if (hasVar) {
+    if (!articleBarcode && hasMissingVariantBarcode(variations)) {
+      return 'missing';
+    }
+    return '—';
+  }
+
+  return articleBarcode || '—';
+}
+
 class ArticleRow extends Component {
   state = { open: false };
 
@@ -53,6 +72,7 @@ class ArticleRow extends Component {
     const { open } = this.state;
     const variations = article.variations || [];
     const hasVar = variations.length > 0;
+    const barcodeLabel = articleBarcodeLabel(article);
 
     return (
       <>
@@ -83,7 +103,7 @@ class ArticleRow extends Component {
             {hasVar ? <Chip size="small" variant="outlined" label={`${variations.length} variations`} /> : money(article.price)}
           </TableCell>
           <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-            {hasVar ? '—' : (
+            {hasVar ? barcodeLabel : (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-start' }}>
                 <span>{article.barcode || '—'}</span>
                 {!hasUuid(article.variant_uuid) && <NewBadge />}
@@ -209,6 +229,7 @@ class App extends Component {
     loading: true,
     query: '',
     search: '',
+    missingBarcodeOnly: false,
     dialog: { open: false, initial: null },
     categoriesOpen: false,
     categories: [],
@@ -236,6 +257,7 @@ class App extends Component {
       prevState.page !== page
       || prevState.pageSize !== pageSize
       || prevState.search !== search
+      || prevState.missingBarcodeOnly !== this.state.missingBarcodeOnly
     ) {
       this.load(page, pageSize, search);
     }
@@ -305,13 +327,19 @@ class App extends Component {
     }
   };
 
-  load = async (nextPage = this.state.page, nextPageSize = this.state.pageSize, nextSearch = this.state.search) => {
+  load = async (
+    nextPage = this.state.page,
+    nextPageSize = this.state.pageSize,
+    nextSearch = this.state.search,
+    nextMissingBarcodeOnly = this.state.missingBarcodeOnly,
+  ) => {
     this.setState({ loading: true });
     try {
       const res = await api.list({
         page: nextPage + 1,
         pageSize: nextPageSize,
         q: nextSearch,
+        missingBarcode: nextMissingBarcodeOnly,
       });
       if (res.items.length === 0 && res.total > 0 && nextPage > 0) {
         this.setState({ page: nextPage - 1 });
@@ -427,7 +455,9 @@ class App extends Component {
   };
 
   renderArticlesPaper() {
-    const { articles, total, page, pageSize, loading, search, isMobile } = this.state;
+    const {
+      articles, total, page, pageSize, loading, search, isMobile, missingBarcodeOnly,
+    } = this.state;
     const showEmptyState = !loading && total === 0;
     const showTable = total > 0 || (loading && articles.length > 0);
     const tableMinHeight = TABLE_HEADER_HEIGHT + pageSize * TABLE_ROW_HEIGHT;
@@ -436,9 +466,13 @@ class App extends Component {
       return (
         <Box sx={{ p: 6, textAlign: 'center', color: 'text.secondary' }}>
           <Typography>
-            {search
-              ? `No articles match "${search}".`
-              : 'No articles. Import a CSV or create one.'}
+            {missingBarcodeOnly
+              ? (search
+                ? `No articles with missing barcodes match "${search}".`
+                : 'No articles with missing barcodes.')
+              : (search
+                ? `No articles match "${search}".`
+                : 'No articles. Import a CSV or create one.')}
           </Typography>
         </Box>
       );
@@ -528,7 +562,7 @@ class App extends Component {
     const { user, onLogout } = this.props;
     const {
       articles, total, page, pageSize, stats, loading, query, search,
-      dialog, categoriesOpen, categories, toast, isMobile,
+      missingBarcodeOnly, dialog, categoriesOpen, categories, toast, isMobile,
     } = this.state;
 
     return (
@@ -612,28 +646,52 @@ class App extends Component {
               mb: 2,
             }}
           >
-            <TextField
-              inputRef={this.searchRef}
-              size="small"
-              placeholder={isMobile ? 'Search or scan barcode…' : 'Search or scan barcode (min. 3 characters)…'}
-              value={query}
-              onChange={(e) => this.setState({ query: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  this.applySearch(query);
-                  this.selectSearchText();
-                }
-              }}
+            <Box
               sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
                 flexGrow: 1,
                 width: '100%',
-                maxWidth: { xs: 'none', sm: 420 },
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'background.paper',
-                },
+                maxWidth: { xs: 'none', sm: 560 },
               }}
-              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
-            />
+            >
+              <TextField
+                inputRef={this.searchRef}
+                size="small"
+                placeholder={isMobile ? 'Search or scan barcode…' : 'Search or scan barcode (min. 3 characters)…'}
+                value={query}
+                onChange={(e) => this.setState({ query: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    this.applySearch(query);
+                    this.selectSearchText();
+                  }
+                }}
+                sx={{
+                  flexGrow: 1,
+                  width: '100%',
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'background.paper',
+                  },
+                }}
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+              />
+              <FormControlLabel
+                control={(
+                  <Switch
+                    size="small"
+                    checked={missingBarcodeOnly}
+                    onChange={(e) => this.setState({
+                      missingBarcodeOnly: e.target.checked,
+                      page: 0,
+                    })}
+                  />
+                )}
+                label={isMobile ? 'Missing' : 'Missing barcode'}
+                sx={{ flexShrink: 0, m: 0, whiteSpace: 'nowrap' }}
+              />
+            </Box>
             <Box
               sx={{
                 display: 'flex',

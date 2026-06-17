@@ -33,12 +33,13 @@ export const api = {
   logout: () =>
     fetch('/api/auth/logout', { method: 'POST', ...credentials }).then(json),
 
-  list: ({ page = 1, pageSize = 25, q = '' } = {}) => {
+  list: ({ page = 1, pageSize = 25, q = '', missingBarcode = false } = {}) => {
     const params = new URLSearchParams({
       page: String(page),
       pageSize: String(pageSize),
     });
     if (q) params.set('q', q);
+    if (missingBarcode) params.set('missingBarcode', '1');
     return fetch(`/api/articles?${params}`, credentials).then(json);
   },
 

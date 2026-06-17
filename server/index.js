@@ -136,7 +136,7 @@ function buildArticleFilter(q) {
   const barcodeLike = `%${term}%`;
   return {
     clause: `
-      WHERE (
+      (
         LOWER(a.item_name) LIKE ?
         OR LOWER(IFNULL(c.name, '')) LIKE ?
         OR IFNULL(a.barcode, '') LIKE ?
@@ -154,6 +154,34 @@ function buildArticleFilter(q) {
   };
 }
 
+const missingBarcodeClause = `
+  EXISTS (SELECT 1 FROM variations v WHERE v.article_id = a.id)
+  AND IFNULL(TRIM(a.barcode), '') = ''
+  AND EXISTS (
+    SELECT 1 FROM variations v2
+    WHERE v2.article_id = a.id
+      AND IFNULL(TRIM(v2.barcode), '') = ''
+  )
+`;
+
+function buildArticleWhere({ q = '', missingBarcode = false } = {}) {
+  const parts = [];
+  const params = [];
+
+  const search = buildArticleFilter(q);
+  if (search.clause) {
+    parts.push(search.clause);
+    params.push(...search.params);
+  }
+
+  if (missingBarcode) {
+    parts.push(missingBarcodeClause);
+  }
+
+  const clause = parts.length ? `WHERE ${parts.join(' AND ')}` : '';
+  return { clause, params };
+}
+
 function getStats() {
   const articles = db.prepare('SELECT COUNT(*) AS c FROM articles').get().c;
   const explicitVars = db.prepare('SELECT COUNT(*) AS c FROM variations').get().c;
@@ -164,8 +192,8 @@ function getStats() {
   return { articles, variations: explicitVars + standalone };
 }
 
-function getArticlesPage({ page = 1, pageSize = 25, q = '' } = {}) {
-  const { clause, params } = buildArticleFilter(q);
+function getArticlesPage({ page = 1, pageSize = 25, q = '', missingBarcode = false } = {}) {
+  const { clause, params } = buildArticleWhere({ q, missingBarcode });
   const limit = Math.min(Math.max(1, Number(pageSize) || 25), 100);
   const currentPage = Math.max(1, Number(page) || 1);
   const offset = (currentPage - 1) * limit;
@@ -235,6 +263,7 @@ app.get('/api/articles', requireAuth, (req, res) => {
     page: req.query.page,
     pageSize: req.query.pageSize,
     q: req.query.q,
+    missingBarcode: req.query.missingBarcode === '1',
   });
   res.json(result);
 });

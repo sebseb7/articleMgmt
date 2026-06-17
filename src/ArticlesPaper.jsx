@@ -56,7 +56,6 @@ export default class ArticlesPaper extends Component {
           page={page}
           pageSize={pageSize}
           total={total}
-          loading={loading}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
           compact={isMobile}
@@ -84,7 +83,6 @@ export default class ArticlesPaper extends Component {
           page={page}
           pageSize={pageSize}
           total={total}
-          loading={loading}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
           compact={isMobile}

@@ -219,6 +219,7 @@ export const theme = createTheme({
     MuiPaginationItem: {
       styleOverrides: {
         root: {
+          transition: 'none',
           color: '#0f766e',
           '@media (hover: hover)': {
             '&:hover': {

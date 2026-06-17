@@ -4,7 +4,7 @@ import { ALL_PAGE_SIZE, PAGE_SIZE_OPTIONS, isAllPageSize } from './articleTableU
 
 export default class TableNavigation extends Component {
   render() {
-    const { page, pageSize, total, loading, onPageChange, onPageSizeChange, edge = 'bottom', compact = false } = this.props;
+    const { page, pageSize, total, onPageChange, onPageSizeChange, edge = 'bottom', compact = false } = this.props;
     const allRows = isAllPageSize(pageSize);
     const borderSx = edge === 'top'
       ? { borderBottom: 1, borderColor: 'divider' }
@@ -55,7 +55,6 @@ export default class TableNavigation extends Component {
             siblingCount={compact ? 0 : 1}
             boundaryCount={compact ? 1 : 1}
             color="primary"
-            disabled={total === 0 || loading}
             size={compact ? 'small' : 'medium'}
             sx={{ alignSelf: compact ? 'center' : { xs: 'center', sm: 'auto' } }}
           />

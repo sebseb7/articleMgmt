@@ -56,6 +56,16 @@ export const theme = createTheme({
         },
       },
     },
+    MuiPopover: {
+      defaultProps: {
+        disableScrollLock: true,
+      },
+    },
+    MuiMenu: {
+      defaultProps: {
+        disableScrollLock: true,
+      },
+    },
     MuiBackdrop: {
       styleOverrides: {
         root: {

@@ -374,9 +374,15 @@ export default class ArticlesGrid extends Component {
     });
   };
 
-  buildRowData() {
+  rowDataCache = { articles: null, expanded: null, rows: [] };
+
+  getRowData() {
     const { articles } = this.props;
     const { expanded } = this.state;
+    const cache = this.rowDataCache;
+    if (cache.articles === articles && cache.expanded === expanded) {
+      return cache.rows;
+    }
     const rows = [];
     articles.forEach((article) => {
       rows.push({ kind: 'article', id: article.id, article });
@@ -385,6 +391,7 @@ export default class ArticlesGrid extends Component {
         rows.push({ kind: 'detail', id: article.id, article });
       }
     });
+    this.rowDataCache = { articles, expanded, rows };
     return rows;
   }
 
@@ -420,7 +427,7 @@ export default class ArticlesGrid extends Component {
         <AgGridReact
           theme={agTheme}
           domLayout="autoHeight"
-          rowData={this.buildRowData()}
+          rowData={this.getRowData()}
           columnDefs={this.columnDefs}
           defaultColDef={this.defaultColDef}
           context={context}

@@ -1,9 +1,8 @@
 import { Component } from 'react';
 import {
-  Box, Typography, Table, TableHead, TableBody, TableRow, TableCell,
-  CircularProgress, TableContainer,
+  Box, Typography, CircularProgress,
 } from '@mui/material';
-import ArticleRow from './ArticleRow.jsx';
+import ArticlesGrid from './ArticlesGrid.jsx';
 import TableNavigation from './TableNavigation.jsx';
 import { formatCategoryFilterLabel, TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT } from './articleTableUtils.js';
 
@@ -60,42 +59,16 @@ export default class ArticlesPaper extends Component {
           onPageSizeChange={onPageSizeChange}
           compact={isMobile}
         />
-        <TableContainer
-          sx={{
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            minHeight: tableMinHeight,
-          }}
-        >
-          <Table size="small" sx={{ minWidth: 720 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox" />
-                <TableCell padding="checkbox" />
-                <TableCell>Item name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell align="right">Tax</TableCell>
-                <TableCell align="right">Price / Variations</TableCell>
-                <TableCell>Barcode</TableCell>
-                <TableCell align="center">Online</TableCell>
-                <TableCell align="right" />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {articles.map((a) => (
-                <ArticleRow
-                  key={a.id}
-                  article={a}
-                  barcodeCapture={barcodeCapture}
-                  barcodeCaptureBuffer={barcodeCaptureBuffer}
-                  onStartBarcodeCapture={onStartBarcodeCapture}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box sx={{ minHeight: tableMinHeight }}>
+          <ArticlesGrid
+            articles={articles}
+            barcodeCapture={barcodeCapture}
+            barcodeCaptureBuffer={barcodeCaptureBuffer}
+            onStartBarcodeCapture={onStartBarcodeCapture}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </Box>
         <TableNavigation
           edge="bottom"
           page={page}

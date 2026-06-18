@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import './fonts.js';
 import ReactDOM from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress } from '@mui/material';

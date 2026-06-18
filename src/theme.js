@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material/styles';
+import { fontFamily } from './fonts.js';
 
 export const theme = createTheme({
   palette: {
@@ -29,7 +30,7 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 10 },
   typography: {
-    fontFamily: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+    fontFamily,
   },
   components: {
     MuiCssBaseline: {

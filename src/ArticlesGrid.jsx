@@ -21,6 +21,7 @@ import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
 import BarcodeAssignButton from './BarcodeAssignButton.jsx';
 import { money } from './articleTableUtils.js';
+import { fontFamily, monoFontFamily } from './fonts.js';
 
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
@@ -65,7 +66,7 @@ const agTheme = themeQuartz.withParams({
   wrapperBorder: false,
   wrapperBorderRadius: 0,
   borderRadius: 0,
-  fontFamily: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+  fontFamily,
 });
 
 function hasMissingVariantBarcode(variations) {
@@ -112,7 +113,7 @@ function renderBarcodeValue(barcode, articleId, variationId, context) {
         onStart={() => onStartBarcodeCapture(articleId, variationId)}
       />
       {active && barcodeCaptureBuffer ? (
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+        <Typography variant="caption" sx={{ fontFamily: monoFontFamily, color: 'text.secondary' }}>
           {barcodeCaptureBuffer}
         </Typography>
       ) : (
@@ -368,7 +369,7 @@ export default class ArticlesGrid extends PureComponent {
       minWidth: 170,
       cellRenderer: BarcodeCellRenderer,
       cellStyle: (params) => articleCellStyle(params, {
-        ...(barcodeCellUsesMonospace(params) ? { fontFamily: 'monospace' } : {}),
+        ...(barcodeCellUsesMonospace(params) ? { fontFamily: monoFontFamily } : {}),
         fontSize: '0.85rem',
       }),
     },

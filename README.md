@@ -1,5 +1,7 @@
 # SumUp Article Editor
 
+[![Visual tests](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml/badge.svg)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
+
 Import, manage, and re-export SumUp item CSVs. Vite + React + MUI frontend, Express + better-sqlite3 backend.
 
 ## Ports

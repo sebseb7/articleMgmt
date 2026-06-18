@@ -60,7 +60,7 @@ test.describe('visual regression', () => {
     await addVariation.click();
     await addVariation.click();
     await page.getByText('Variations (3)').waitFor();
-    await expect(page).toHaveScreenshot('dialog-new-article-variations.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('dialog-new-article-variations.png', { fullPage: false });
   });
 
   test('categories dialog', async ({ page }) => {

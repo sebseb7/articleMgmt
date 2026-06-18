@@ -1,5 +1,5 @@
 import { PureComponent } from 'react';
-import { Box, Typography, Select, MenuItem, Pagination } from '@mui/material';
+import { Box, Typography, Select, MenuItem, Pagination, PaginationItem } from '@mui/material';
 import { ALL_PAGE_SIZE, PAGE_SIZE_OPTIONS, isAllPageSize } from './articleTableUtils.js';
 
 export default class TableNavigation extends PureComponent {
@@ -56,6 +56,7 @@ export default class TableNavigation extends PureComponent {
             boundaryCount={compact ? 1 : 1}
             color="primary"
             size={compact ? 'small' : 'medium'}
+            renderItem={(item) => <PaginationItem {...item} disableRipple />}
             sx={{ alignSelf: compact ? 'center' : { xs: 'center', sm: 'auto' } }}
           />
         )}

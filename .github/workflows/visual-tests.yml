@@ -51,7 +51,7 @@ jobs:
           CI: true
 
       - name: Upload Playwright report
-        if: success()
+        if: ${{ success() && !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
@@ -59,8 +59,16 @@ jobs:
           archive: false
           if-no-files-found: error
 
+      - name: Upload Playwright report (act)
+        if: ${{ success() && env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: error
+
       - name: Upload failure artifacts
-        if: failure()
+        if: ${{ failure() && !env.ACT }}
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
@@ -69,9 +77,27 @@ jobs:
             test-results/**/*.png
           if-no-files-found: warn
 
+      - name: Upload failure artifacts (act)
+        if: ${{ failure() && env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/**/*.png
+          if-no-files-found: warn
+
       - name: Upload reference snapshots
-        if: failure()
+        if: ${{ failure() && !env.ACT }}
         uses: actions/upload-artifact@v7
+        with:
+          name: snapshot-reference
+          path: tests/screenshots-reference/
+          if-no-files-found: warn
+
+      - name: Upload reference snapshots (act)
+        if: ${{ failure() && env.ACT }}
+        uses: actions/upload-artifact@v4
         with:
           name: snapshot-reference
           path: tests/screenshots-reference/

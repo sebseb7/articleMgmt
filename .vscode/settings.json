@@ -1,0 +1,3 @@
+{
+  "githubLocalActions.actCommand": "act --artifact-server-path .artifacts"
+}

@@ -8,6 +8,9 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import HistoryIcon from '@mui/icons-material/History';
 import ArticleIcon from '@mui/icons-material/Article';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+
+const SUMUP_CATALOG_URL = 'https://me.sumup.com/catalog';
 
 /** Top app bar only — no search, filters, or list state. */
 export default class AppHeader extends PureComponent {
@@ -43,7 +46,7 @@ export default class AppHeader extends PureComponent {
               display: 'flex',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: 0.5,
+              gap: { xs: 0.5, md: 1.5 },
               width: { xs: '100%', md: 'auto' },
               justifyContent: { xs: 'flex-end', md: 'flex-start' },
             }}
@@ -57,6 +60,17 @@ export default class AppHeader extends PureComponent {
             />
             {isMobile ? (
               <>
+                <Tooltip title="SumUp Catalog">
+                  <IconButton
+                    color="inherit"
+                    component="a"
+                    href={SUMUP_CATALOG_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <StorefrontIcon />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title={onChangelog ? 'Changelog' : 'Articles'}>
                   <IconButton color="inherit" onClick={onToggleView}>
                     {onChangelog ? <HistoryIcon /> : <ArticleIcon />}
@@ -85,6 +99,16 @@ export default class AppHeader extends PureComponent {
               </>
             ) : (
               <>
+                <Button
+                  color="inherit"
+                  component="a"
+                  href={SUMUP_CATALOG_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startIcon={<StorefrontIcon />}
+                >
+                  SumUp Catalog
+                </Button>
                 <Button
                   color="inherit"
                   startIcon={onChangelog ? <HistoryIcon /> : <ArticleIcon />}

@@ -28,6 +28,7 @@ import {
   validateAssignBarcode,
 } from './barcodes.js';
 import { startBackupScheduler, backupDatabase } from './backup.js';
+import { logChange, getChangelogPage } from './changelog.js';
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -105,6 +106,29 @@ function variationPayload(v, articleId, order) {
     variant_uuid: v.variant_uuid ?? null,
     sort_order: order,
   };
+}
+
+function normalizedBarcode(value) {
+  const text = String(value ?? '').trim();
+  return text || null;
+}
+
+function formatBarcodeChangeSummary({ target, name, articleName, previous, next }) {
+  const label = target === 'variation'
+    ? `variation "${name}" of "${articleName}"`
+    : `article "${name}"`;
+
+  if (!next) {
+    return previous
+      ? `Cleared barcode on ${label} (was ${previous})`
+      : `Cleared barcode on ${label}`;
+  }
+
+  if (previous) {
+    return `Set barcode on ${label} to ${next} (was ${previous})`;
+  }
+
+  return `Set barcode on ${label} to ${next}`;
 }
 
 function attachVariations(articles) {
@@ -344,6 +368,13 @@ app.get('/api/articles', requireAuth, (req, res) => {
   res.json(result);
 });
 
+app.get('/api/changelog', requireAuth, (req, res) => {
+  res.json(getChangelogPage({
+    page: req.query.page,
+    pageSize: req.query.pageSize,
+  }));
+});
+
 app.get('/api/stats', requireAuth, (req, res) => {
   res.json(getStats());
 });
@@ -364,6 +395,11 @@ app.get('/api/categories', requireAuth, (req, res) => {
 app.post('/api/categories', requireAuth, (req, res) => {
   try {
     const category = createCategory(req.body?.name);
+    logChange(req.user, 'category_create', {
+      entityType: 'category',
+      entityId: category.id,
+      summary: `Created category "${category.name}"`,
+    });
     res.status(201).json(category);
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
@@ -372,7 +408,14 @@ app.post('/api/categories', requireAuth, (req, res) => {
 
 app.put('/api/categories/:id', requireAuth, (req, res) => {
   try {
-    const category = updateCategoryById(Number(req.params.id), req.body?.name);
+    const id = Number(req.params.id);
+    const before = db.prepare('SELECT name FROM categories WHERE id = ?').get(id);
+    const category = updateCategoryById(id, req.body?.name);
+    logChange(req.user, 'category_update', {
+      entityType: 'category',
+      entityId: category.id,
+      summary: `Renamed category "${before?.name || id}" to "${category.name}"`,
+    });
     res.json(category);
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
@@ -381,7 +424,14 @@ app.put('/api/categories/:id', requireAuth, (req, res) => {
 
 app.delete('/api/categories/:id', requireAuth, (req, res) => {
   try {
-    deleteCategoryById(Number(req.params.id));
+    const id = Number(req.params.id);
+    const existing = db.prepare('SELECT name FROM categories WHERE id = ?').get(id);
+    deleteCategoryById(id);
+    logChange(req.user, 'category_delete', {
+      entityType: 'category',
+      entityId: id,
+      summary: `Deleted category "${existing?.name || id}"`,
+    });
     res.json({ ok: true });
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
@@ -405,6 +455,16 @@ app.post('/api/articles', requireAuth, (req, res) => {
   });
   try {
     const id = tx();
+    const name = String(req.body.item_name || '').trim() || `#${id}`;
+    const variationCount = (req.body.variations || []).length;
+    logChange(req.user, 'article_create', {
+      entityType: 'article',
+      entityId: Number(id),
+      summary: variationCount
+        ? `Created article "${name}" with ${variationCount} variation(s)`
+        : `Created article "${name}"`,
+      details: { variationCount },
+    });
     res.status(201).json({ id });
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
@@ -427,6 +487,16 @@ app.put('/api/articles/:id', requireAuth, (req, res) => {
   });
   try {
     tx();
+    const name = String(req.body.item_name || '').trim() || `#${id}`;
+    const variationCount = (req.body.variations || []).length;
+    logChange(req.user, 'article_update', {
+      entityType: 'article',
+      entityId: id,
+      summary: variationCount
+        ? `Updated article "${name}" (${variationCount} variation(s))`
+        : `Updated article "${name}"`,
+      details: { variationCount },
+    });
     res.json({ ok: true });
   } catch (e) {
     res.status(400).json({ error: String(e.message) });
@@ -436,10 +506,10 @@ app.put('/api/articles/:id', requireAuth, (req, res) => {
 app.put('/api/articles/:id/barcode', requireAuth, (req, res) => {
   const articleId = Number(req.params.id);
   const { barcode, variationId } = req.body || {};
-  const value = String(barcode ?? '').trim() || null;
+  const value = normalizedBarcode(barcode);
 
-  const article = db.prepare('SELECT id FROM articles WHERE id = ?').get(articleId);
-  if (!article) {
+  const articleRow = db.prepare('SELECT id, item_name, barcode FROM articles WHERE id = ?').get(articleId);
+  if (!articleRow) {
     return res.status(404).json({ error: 'Article not found.' });
   }
 
@@ -450,21 +520,63 @@ app.put('/api/articles/:id/barcode', requireAuth, (req, res) => {
   }
 
   if (variationId != null && variationId !== '') {
+    const variationRow = db.prepare(
+      'SELECT variation_name, barcode FROM variations WHERE id = ? AND article_id = ?',
+    ).get(Number(variationId), articleId);
+    if (!variationRow) {
+      return res.status(404).json({ error: 'Variation not found.' });
+    }
+    const previous = normalizedBarcode(variationRow.barcode);
+
     const info = db.prepare(
       'UPDATE variations SET barcode = ? WHERE id = ? AND article_id = ?',
     ).run(value, Number(variationId), articleId);
     if (info.changes === 0) {
       return res.status(404).json({ error: 'Variation not found.' });
     }
+
+    logChange(req.user, 'variation_update', {
+      entityType: 'variation',
+      entityId: Number(variationId),
+      summary: formatBarcodeChangeSummary({
+        target: 'variation',
+        name: variationRow.variation_name || variationId,
+        articleName: articleRow.item_name || articleId,
+        previous,
+        next: value,
+      }),
+      details: { articleId, previousBarcode: previous, barcode: value },
+    });
   } else {
+    const previous = normalizedBarcode(articleRow.barcode);
+
     db.prepare('UPDATE articles SET barcode = ? WHERE id = ?').run(value, articleId);
+
+    logChange(req.user, 'article_update', {
+      entityType: 'article',
+      entityId: articleId,
+      summary: formatBarcodeChangeSummary({
+        target: 'article',
+        name: articleRow.item_name || articleId,
+        previous,
+        next: value,
+      }),
+      details: { previousBarcode: previous, barcode: value },
+    });
   }
 
   res.json({ ok: true, barcode: value });
 });
 
 app.delete('/api/articles/:id', requireAuth, (req, res) => {
-  deleteArticleStmt.run(Number(req.params.id));
+  const id = Number(req.params.id);
+  const existing = db.prepare('SELECT item_name FROM articles WHERE id = ?').get(id);
+  deleteArticleStmt.run(id);
+  logChange(req.user, 'article_delete', {
+    entityType: 'article',
+    entityId: id,
+    summary: `Deleted article "${existing?.item_name || id}"`,
+  });
   res.json({ ok: true });
 });
 
@@ -479,6 +591,10 @@ app.post('/api/flush', requireAuth, async (req, res) => {
       ).run();
     });
     tx();
+    logChange(req.user, 'flush', {
+      entityType: 'database',
+      summary: 'Flushed all articles and variations (categories kept)',
+    });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: String(e.message) });
@@ -530,6 +646,11 @@ app.post('/api/import', requireAuth, (req, res) => {
 
   try {
     const variationCount = tx();
+    logChange(req.user, 'import', {
+      entityType: 'database',
+      summary: `Imported ${articles.length} article(s) and ${variationCount} variation row(s) from CSV`,
+      details: { articles: articles.length, variations: variationCount },
+    });
     res.json({ articles: articles.length, variations: variationCount });
   } catch (e) {
     res.status(400).json({ error: String(e.message) });

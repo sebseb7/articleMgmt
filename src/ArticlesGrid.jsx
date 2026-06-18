@@ -288,11 +288,7 @@ export default class ArticlesGrid extends PureComponent {
 
   static getDerivedStateFromProps(nextProps, prevState) {
     if (nextProps.articles !== prevState.boundArticles) {
-      const patch = { boundArticles: nextProps.articles };
-      if (prevState.expanded.size > 0) {
-        patch.expanded = new Set();
-      }
-      return patch;
+      return { boundArticles: nextProps.articles };
     }
     return null;
   }

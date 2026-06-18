@@ -5,6 +5,8 @@ import {
 import UploadIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import LogoutIcon from '@mui/icons-material/Logout';
+import HistoryIcon from '@mui/icons-material/History';
+import ArticleIcon from '@mui/icons-material/Article';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 
 /** Top app bar only — no search, filters, or list state. */
@@ -12,7 +14,8 @@ export default class AppHeader extends PureComponent {
   fileRef = createRef();
 
   render() {
-    const { user, isMobile, onImportFile, onExport, onFlushDb, onLogout } = this.props;
+    const { user, isMobile, view, onImportFile, onExport, onFlushDb, onLogout, onToggleView } = this.props;
+    const onChangelog = view === 'articles';
 
     return (
       <AppBar position="static" elevation={0}>
@@ -54,6 +57,11 @@ export default class AppHeader extends PureComponent {
             />
             {isMobile ? (
               <>
+                <Tooltip title={onChangelog ? 'Changelog' : 'Articles'}>
+                  <IconButton color="inherit" onClick={onToggleView}>
+                    {onChangelog ? <HistoryIcon /> : <ArticleIcon />}
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Import CSV">
                   <IconButton color="inherit" onClick={() => this.fileRef.current?.click()}>
                     <UploadIcon />
@@ -77,6 +85,13 @@ export default class AppHeader extends PureComponent {
               </>
             ) : (
               <>
+                <Button
+                  color="inherit"
+                  startIcon={onChangelog ? <HistoryIcon /> : <ArticleIcon />}
+                  onClick={onToggleView}
+                >
+                  {onChangelog ? 'Changelog' : 'Articles'}
+                </Button>
                 <Button color="inherit" startIcon={<UploadIcon />} onClick={() => this.fileRef.current?.click()}>
                   Import CSV
                 </Button>

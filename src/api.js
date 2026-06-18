@@ -45,6 +45,14 @@ export const api = {
     return fetch(`/api/articles?${params}`, credentials).then(json);
   },
 
+  listChangelog: ({ page = 1, pageSize = 25 } = {}) => {
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+    });
+    return fetch(`/api/changelog?${params}`, credentials).then(json);
+  },
+
   stats: () => fetch('/api/stats', credentials).then(json),
 
   generateBarcode: () =>

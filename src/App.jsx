@@ -11,6 +11,7 @@ import {
 
 class App extends Component {
   state = {
+    view: 'articles',
     articles: [],
     total: 0,
     page: 0,
@@ -28,10 +29,16 @@ class App extends Component {
     isMobile: false,
     barcodeCapture: null,
     barcodeCaptureBuffer: '',
+    changelogEntries: [],
+    changelogTotal: 0,
+    changelogPage: 0,
+    changelogPageSize: DEFAULT_PAGE_SIZE,
+    changelogLoading: false,
   };
 
   searchRef = createRef();
   loadSeq = 0;
+  changelogLoadSeq = 0;
 
   componentDidMount() {
     this.mediaQueryList = window.matchMedia(mediaQueryString(theme, 'down'));
@@ -44,14 +51,27 @@ class App extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { page, pageSize, search, query, dialog, categoryFilters, missingBarcodeOnly } = this.state;
+    const {
+      page, pageSize, search, query, dialog, categoryFilters, missingBarcodeOnly,
+      view, changelogPageSize,
+    } = this.state;
 
-    if (
+    if (prevState.view !== view) {
+      if (view === 'changelog') {
+        this.loadChangelog(this.state.changelogPage, this.state.changelogPageSize);
+      }
+    }
+
+    if (view === 'changelog' && prevState.changelogPageSize !== changelogPageSize) {
+      this.loadChangelog(this.state.changelogPage, changelogPageSize);
+    }
+
+    if (view === 'articles' && (
       prevState.pageSize !== pageSize
       || prevState.search !== search
       || !categoryFiltersEqual(prevState.categoryFilters, categoryFilters)
       || prevState.missingBarcodeOnly !== missingBarcodeOnly
-    ) {
+    )) {
       const includeListMeta =
         prevState.search !== search
         || prevState.missingBarcodeOnly !== missingBarcodeOnly;
@@ -178,6 +198,9 @@ class App extends Component {
       this.updateArticleBarcodeInState(articleId, variationId, barcode || null);
       this.cancelBarcodeCapture();
       this.notify(barcode ? 'Barcode saved.' : 'Barcode cleared.');
+      if (this.state.view === 'changelog') {
+        await this.loadChangelog(this.state.changelogPage, this.state.changelogPageSize);
+      }
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
       this.cancelBarcodeCapture();
@@ -214,6 +237,57 @@ class App extends Component {
       patch.categoryCounts = result.categoryCounts;
     }
     this.setState(patch);
+  };
+
+  loadChangelog = async (
+    nextPage = this.state.changelogPage,
+    nextPageSize = this.state.changelogPageSize,
+    { page: pageOverride } = {},
+  ) => {
+    const seq = ++this.changelogLoadSeq;
+    if (this.state.changelogEntries.length === 0) {
+      this.setState({ changelogLoading: true });
+    }
+    try {
+      const res = await api.listChangelog({
+        page: nextPage + 1,
+        pageSize: nextPageSize,
+      });
+      if (seq !== this.changelogLoadSeq) return;
+
+      if (res.items.length === 0 && res.total > 0 && nextPage > 0) {
+        const correctedPage = nextPage - 1;
+        await this.loadChangelog(correctedPage, nextPageSize, { page: correctedPage });
+        return;
+      }
+
+      this.setState({
+        changelogEntries: res.items,
+        changelogTotal: res.total,
+        changelogPageSize: res.pageSize,
+        changelogPage: pageOverride ?? nextPage,
+        changelogLoading: false,
+      });
+    } catch (e) {
+      if (seq !== this.changelogLoadSeq) return;
+      if (!this.handleAuthError(e)) this.notify(e.message, 'error');
+      this.setState({ changelogLoading: false });
+    }
+  };
+
+  toggleView = () => {
+    this.setState((prev) => ({
+      view: prev.view === 'articles' ? 'changelog' : 'articles',
+    }));
+  };
+
+  handleChangelogPageSizeChange = (nextPageSize) => {
+    this.setState({ changelogPageSize: nextPageSize, changelogPage: 0 });
+  };
+
+  handleChangelogPageChange = (nextPage) => {
+    const { changelogPageSize } = this.state;
+    this.loadChangelog(nextPage, changelogPageSize, { page: nextPage });
   };
 
   load = async (
@@ -365,6 +439,9 @@ class App extends Component {
       this.setState({ page: 0, search: '', query: '', categoryFilters: [] });
       await this.load(0, pageSize, '');
       await this.loadCategories();
+      if (this.state.view === 'changelog') {
+        await this.loadChangelog(0, this.state.changelogPageSize, { page: 0 });
+      }
       this.notify(`Imported ${res.articles} articles and ${res.variations} variations.`);
     } catch (err) {
       if (!this.handleAuthError(err)) this.notify(err.message, 'error');
@@ -383,6 +460,9 @@ class App extends Component {
       }
       this.setState({ dialog: { open: false, initial: null } });
       await this.load(page, pageSize, search);
+      if (this.state.view === 'changelog') {
+        await this.loadChangelog(this.state.changelogPage, this.state.changelogPageSize);
+      }
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
     }
@@ -394,6 +474,9 @@ class App extends Component {
     try {
       await api.remove(article.id);
       await this.load(page, pageSize, search);
+      if (this.state.view === 'changelog') {
+        await this.loadChangelog(this.state.changelogPage, this.state.changelogPageSize);
+      }
       this.notify('Article deleted.');
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
@@ -416,6 +499,9 @@ class App extends Component {
       this.setState({ page: 0, search: '', query: '', categoryFilters: [] });
       this.cancelBarcodeCapture();
       await this.load(0, pageSize, '');
+      if (this.state.view === 'changelog') {
+        await this.loadChangelog(0, this.state.changelogPageSize, { page: 0 });
+      }
       this.notify('Database flushed.');
     } catch (e) {
       if (!this.handleAuthError(e)) this.notify(e.message, 'error');
@@ -460,15 +546,20 @@ class App extends Component {
     const { page, pageSize, search } = this.state;
     await this.loadCategories();
     await this.load(page, pageSize, search);
+    if (this.state.view === 'changelog') {
+      await this.loadChangelog(this.state.changelogPage, this.state.changelogPageSize);
+    }
   };
 
   render() {
     const { user, onLogout } = this.props;
     const {
+      view,
       articles, total, page, pageSize, stats, loading, query, search,
       missingBarcodeOnly, categoryFilters, categoryCounts,
       dialog, categoriesOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
+      changelogEntries, changelogTotal, changelogPage, changelogPageSize, changelogLoading,
     } = this.state;
 
     return (
@@ -476,6 +567,8 @@ class App extends Component {
         <AppShell
           user={user}
           onLogout={onLogout}
+          view={view}
+          onToggleView={this.toggleView}
           searchRef={this.searchRef}
           query={query}
           stats={stats}
@@ -506,6 +599,13 @@ class App extends Component {
           onDeleteArticle={this.handleDelete}
           onPageChange={this.handlePageChange}
           onPageSizeChange={this.handlePageSizeChange}
+          changelogEntries={changelogEntries}
+          changelogTotal={changelogTotal}
+          changelogPage={changelogPage}
+          changelogPageSize={changelogPageSize}
+          changelogLoading={changelogLoading}
+          onChangelogPageChange={this.handleChangelogPageChange}
+          onChangelogPageSizeChange={this.handleChangelogPageSizeChange}
         />
 
         <ArticleDialog

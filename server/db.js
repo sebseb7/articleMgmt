@@ -65,6 +65,20 @@ db.exec(`
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS changelog (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id),
+    username    TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id   INTEGER,
+    summary     TEXT NOT NULL,
+    details     TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_changelog_created ON changelog(created_at DESC);
 `);
 
 db.prepare(

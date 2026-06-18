@@ -8,6 +8,8 @@ on:
 jobs:
   visual:
     runs-on: ubuntu-latest
+    env:
+      ACT: '' # set by nektos/act when running locally
     steps:
       - name: Checkout
         uses: actions/checkout@v6

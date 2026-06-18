@@ -22,7 +22,7 @@ export const theme = createTheme({
     divider: 'rgba(13, 148, 136, 0.2)',
     text: {
       primary: '#134e4a',
-      secondary: '#5b7c7a',
+      secondary: '#4f6d6b',
     },
     success: {
       main: '#059669',
@@ -118,20 +118,34 @@ export const theme = createTheme({
         },
       },
     },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          '&.Mui-focused': {
+            color: '#0f766e',
+          },
+        },
+        outlined: {
+          '&.MuiInputLabel-shrink': {
+            color: '#0f766e',
+          },
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         containedPrimary: {
-          background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
+          background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
           boxShadow: '0 2px 8px rgba(13, 148, 136, 0.3)',
           color: '#ffffff',
           '@media (hover: hover)': {
             '&:hover': {
-              background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+              background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
               color: '#ffffff',
             },
           },
           '&:active': {
-            background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+            background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
             color: '#ffffff',
           },
         },
@@ -233,16 +247,16 @@ export const theme = createTheme({
             color: '#0f766e',
           },
           '&.Mui-selected': {
-            background: 'linear-gradient(135deg, #0d9488 0%, #0891b2 100%)',
+            background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
             color: '#ffffff',
             '@media (hover: hover)': {
               '&:hover': {
-                background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+                background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
                 color: '#ffffff',
               },
             },
             '&:active': {
-              background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+              background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
               color: '#ffffff',
             },
           },

@@ -1,0 +1,8 @@
+# SumUp Article Editor
+
+> Import, manage, and re-export SumUp item CSVs. Authenticated web app for editing articles, 
+categories, barcodes, and variations before exporting back to SumUp's 47-column CSV format.
+
+Important notes:
+
+- No article, category, or user data is publicly available; all content requires authentication.

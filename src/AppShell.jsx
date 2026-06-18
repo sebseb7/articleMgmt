@@ -39,7 +39,11 @@ export default class AppShell extends PureComponent {
           onFlushDb={onFlushDb}
           onLogout={onLogout}
         />
-        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 3 } }}>
+        <Container
+          component="main"
+          maxWidth="lg"
+          sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 3 } }}
+        >
           {showArticles ? (
             <>
               <Box sx={{ mb: 2 }}>

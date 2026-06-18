@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import './fonts.js';
 import ReactDOM from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress } from '@mui/material';
@@ -41,7 +40,10 @@ class Root extends Component {
 
     if (checking) {
       return (
-        <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box
+          component="main"
+          sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
           <CircularProgress />
         </Box>
       );

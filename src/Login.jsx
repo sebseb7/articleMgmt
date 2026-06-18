@@ -44,6 +44,7 @@ export default class Login extends Component {
 
     return (
       <Box
+        component="main"
         sx={{
           minHeight: '100vh',
           display: 'flex',

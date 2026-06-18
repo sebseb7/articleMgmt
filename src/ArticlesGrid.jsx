@@ -31,9 +31,25 @@ ModuleRegistry.registerModules([
 ]);
 
 const ARTICLE_ROW_HEIGHT = 52;
+const NON_EXPAND_CLICK_COLUMNS = new Set(['edit', 'delete']);
 const DETAIL_HEADER_HEIGHT = 52;
 const DETAIL_VARIATION_ROW_HEIGHT = 41;
 const DETAIL_VERTICAL_PADDING = 24;
+
+function isExpandableArticleCell(params) {
+  const colId = params.column?.getColId();
+  if (colId && NON_EXPAND_CLICK_COLUMNS.has(colId)) return false;
+  const { data } = params;
+  return data?.kind === 'article' && (data.article.variations || []).length > 0;
+}
+
+function articleCellStyle(params, extra = {}) {
+  const style = { display: 'flex', alignItems: 'center', ...extra };
+  if (isExpandableArticleCell(params)) {
+    style.cursor = 'pointer';
+  }
+  return style;
+}
 
 const agTheme = themeQuartz.withParams({
   accentColor: '#0d9488',
@@ -44,7 +60,7 @@ const agTheme = themeQuartz.withParams({
   headerTextColor: '#0f766e',
   headerFontWeight: 600,
   borderColor: 'rgba(13, 148, 136, 0.2)',
-  rowHoverColor: 'rgba(8, 145, 178, 0.06)',
+  rowHoverColor: 'transparent',
   rowBorder: { style: 'solid', width: 1, color: 'rgba(13, 148, 136, 0.16)' },
   wrapperBorder: false,
   wrapperBorderRadius: 0,
@@ -102,7 +118,14 @@ class EditCellRenderer extends Component {
   render() {
     const { data, context } = this.props;
     return (
-      <IconButton size="small" aria-label="Edit" onClick={() => context.onEdit(data.article)}>
+      <IconButton
+        size="small"
+        aria-label="Edit"
+        onClick={(e) => {
+          e.stopPropagation();
+          context.onEdit(data.article);
+        }}
+      >
         <EditIcon fontSize="small" />
       </IconButton>
     );
@@ -116,8 +139,15 @@ class ExpandCellRenderer extends Component {
     if (variations.length === 0) return null;
     const open = context.isExpanded(data.id);
     return (
-      <IconButton size="small" onClick={() => context.onToggle(data.id)}>
-        {open ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
+      <IconButton
+        size="small"
+        className="articles-grid-expand-btn"
+        tabIndex={-1}
+        disableRipple
+        aria-hidden
+        sx={{ color: '#0f766e', pointerEvents: 'none' }}
+      >
+        {open ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
       </IconButton>
     );
   }
@@ -186,7 +216,14 @@ class DeleteCellRenderer extends Component {
   render() {
     const { data, context } = this.props;
     return (
-      <IconButton size="small" aria-label="Delete" onClick={() => context.onDelete(data.article)}>
+      <IconButton
+        size="small"
+        aria-label="Delete"
+        onClick={(e) => {
+          e.stopPropagation();
+          context.onDelete(data.article);
+        }}
+      >
         <DeleteIcon fontSize="small" />
       </IconButton>
     );
@@ -259,7 +296,6 @@ export default class ArticlesGrid extends PureComponent {
     onStartBarcodeCapture: (articleId, variationId) => (
       this.props.onStartBarcodeCapture(articleId, variationId)
     ),
-    onToggle: (id) => this.toggleExpand(id),
     isExpanded: (id) => this.isExpanded(id),
     barcodeCapture: null,
     barcodeCaptureBuffer: '',
@@ -273,7 +309,7 @@ export default class ArticlesGrid extends PureComponent {
       minWidth: 56,
       maxWidth: 56,
       cellRenderer: EditCellRenderer,
-      cellStyle: { justifyContent: 'center' },
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'center' }),
     },
     {
       colId: 'expand',
@@ -282,7 +318,7 @@ export default class ArticlesGrid extends PureComponent {
       minWidth: 52,
       maxWidth: 52,
       cellRenderer: ExpandCellRenderer,
-      cellStyle: { justifyContent: 'center' },
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'center' }),
     },
     {
       colId: 'item_name',
@@ -303,7 +339,7 @@ export default class ArticlesGrid extends PureComponent {
       headerName: 'Tax',
       width: 84,
       minWidth: 84,
-      cellStyle: { justifyContent: 'flex-end' },
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'flex-end' }),
       headerClass: 'ag-right-aligned-header',
       valueGetter: (params) => params.data.article.tax_rate,
       valueFormatter: (params) => (params.value != null ? `${Number(params.value).toFixed(0)}%` : '—'),
@@ -314,7 +350,7 @@ export default class ArticlesGrid extends PureComponent {
       flex: 1,
       minWidth: 150,
       cellRenderer: PriceCellRenderer,
-      cellStyle: { justifyContent: 'flex-end' },
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'flex-end' }),
       headerClass: 'ag-right-aligned-header',
     },
     {
@@ -323,7 +359,7 @@ export default class ArticlesGrid extends PureComponent {
       flex: 1.5,
       minWidth: 170,
       cellRenderer: BarcodeCellRenderer,
-      cellStyle: { fontFamily: 'monospace', fontSize: '0.85rem' },
+      cellStyle: (params) => articleCellStyle(params, { fontFamily: 'monospace', fontSize: '0.85rem' }),
     },
     {
       colId: 'online',
@@ -331,7 +367,7 @@ export default class ArticlesGrid extends PureComponent {
       width: 96,
       minWidth: 96,
       cellRenderer: OnlineCellRenderer,
-      cellStyle: { justifyContent: 'center' },
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'center' }),
       headerClass: 'ag-center-aligned-header',
     },
     {
@@ -341,7 +377,7 @@ export default class ArticlesGrid extends PureComponent {
       minWidth: 56,
       maxWidth: 56,
       cellRenderer: DeleteCellRenderer,
-      cellStyle: { justifyContent: 'center' },
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'center' }),
     },
   ];
 
@@ -350,7 +386,10 @@ export default class ArticlesGrid extends PureComponent {
     resizable: true,
     suppressHeaderMenuButton: true,
     suppressMovable: true,
-    cellStyle: { display: 'flex', alignItems: 'center' },
+    cellStyle: articleCellStyle,
+    cellClassRules: {
+      'articles-grid-cell--expandable': isExpandableArticleCell,
+    },
     suppressKeyboardEvent: () => true,
   };
 
@@ -391,6 +430,16 @@ export default class ArticlesGrid extends PureComponent {
       else expanded.add(id);
       return { expanded };
     });
+  };
+
+  handleCellClicked = (params) => {
+    const colId = params.column?.getColId();
+    if (colId && NON_EXPAND_CLICK_COLUMNS.has(colId)) return;
+    const { data } = params;
+    if (!data || data.kind !== 'article') return;
+    const variations = data.article.variations || [];
+    if (variations.length === 0) return;
+    this.toggleExpand(data.id);
   };
 
   rowDataCache = { articles: null, expanded: null, rows: [] };
@@ -444,6 +493,11 @@ export default class ArticlesGrid extends PureComponent {
           '& .ag-header': {
             borderTop: 'none',
           },
+          '@media (hover: hover)': {
+            '& .ag-row:has(.articles-grid-cell--expandable:hover) .articles-grid-expand-btn': {
+              backgroundColor: 'rgba(13, 148, 136, 0.14)',
+            },
+          },
         }}
       >
         <AgGridReact
@@ -461,6 +515,7 @@ export default class ArticlesGrid extends PureComponent {
           suppressCellFocus
           animateRows={false}
           onGridReady={this.handleGridReady}
+          onCellClicked={this.handleCellClicked}
         />
       </Box>
     );

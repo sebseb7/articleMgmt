@@ -54,5 +54,8 @@ export default defineConfig({
     proxy: {
       '/api': `http://127.0.0.1:${process.env.PORT || 3991}`,
     },
+    watch: {
+      ignored: ['**/playwright-report/**', '**/test-results/**', '**/blob-report/**'],
+    },
   },
 });

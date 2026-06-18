@@ -21,9 +21,10 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   expect: {
-    // Full-page shots: catch layout/dialog changes; ignore tiny icons (see element tests).
+    // Full-page shots: maxDiffPixelRatio is a poor fit (0.5% of ~2M px ≈ 9k px budget).
+    // Use a tight pixel cap so localized typography changes (e.g. barcode "missing") fail.
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixels: 300,
       animations: 'disabled',
     },
   },

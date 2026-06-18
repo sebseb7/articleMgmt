@@ -52,6 +52,17 @@ test.describe('visual regression', () => {
     await expect(page).toHaveScreenshot('dialog-new-article.png', { fullPage: true });
   });
 
+  test('new article dialog with variations', async ({ page }) => {
+    await page.getByRole('button', { name: 'New article' }).click();
+    await page.getByRole('heading', { name: 'New article' }).waitFor();
+    const addVariation = page.getByRole('button', { name: 'Add variation' });
+    await addVariation.click();
+    await addVariation.click();
+    await addVariation.click();
+    await page.getByText('Variations (3)').waitFor();
+    await expect(page).toHaveScreenshot('dialog-new-article-variations.png', { fullPage: true });
+  });
+
   test('categories dialog', async ({ page }) => {
     await page.getByRole('button', { name: 'Categories' }).click();
     await page.getByRole('heading', { name: 'Categories' }).waitFor();

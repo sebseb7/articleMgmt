@@ -87,6 +87,14 @@ function articleBarcodeLabel(article) {
   return articleBarcode || null;
 }
 
+function barcodeCellUsesMonospace(params) {
+  const { data } = params;
+  if (data?.kind !== 'article') return false;
+  const variations = data.article.variations || [];
+  if (variations.length > 0) return false;
+  return Boolean(String(data.article.barcode ?? '').trim());
+}
+
 function isBarcodeCapturing(barcodeCapture, articleId, variationId = null) {
   if (!barcodeCapture) return false;
   return barcodeCapture.articleId === articleId && barcodeCapture.variationId === variationId;
@@ -359,7 +367,10 @@ export default class ArticlesGrid extends PureComponent {
       flex: 1.5,
       minWidth: 170,
       cellRenderer: BarcodeCellRenderer,
-      cellStyle: (params) => articleCellStyle(params, { fontFamily: 'monospace', fontSize: '0.85rem' }),
+      cellStyle: (params) => articleCellStyle(params, {
+        ...(barcodeCellUsesMonospace(params) ? { fontFamily: 'monospace' } : {}),
+        fontSize: '0.85rem',
+      }),
     },
     {
       colId: 'online',

@@ -12,29 +12,31 @@ class BarcodeAssignButton extends Component {
         onClick={onStart}
         aria-pressed={active}
         aria-label={active ? 'Enter barcode digits and press Enter; Enter alone clears' : 'Assign barcode'}
-        sx={active ? {
-          bgcolor: 'primary.main',
-          color: '#ffffff',
-          '@media (hover: hover)': {
-            '&:hover': {
+        sx={{
+          border: '1px dashed',
+          borderColor: active ? 'transparent' : 'rgba(13, 148, 136, 0.4)',
+          ...(active ? {
+            bgcolor: 'primary.main',
+            color: '#ffffff',
+            '@media (hover: hover)': {
+              '&:hover': {
+                bgcolor: 'primary.dark',
+                color: '#ffffff',
+              },
+            },
+            '&:active': {
               bgcolor: 'primary.dark',
               color: '#ffffff',
             },
-          },
-          '&:active': {
-            bgcolor: 'primary.dark',
-            color: '#ffffff',
-          },
-        } : {
-          border: '1px dashed',
-          borderColor: 'rgba(13, 148, 136, 0.4)',
-          color: '#0f766e',
-          '@media (hover: hover)': {
-            '&:hover': {
-              bgcolor: 'rgba(13, 148, 136, 0.1)',
-              color: '#0f766e',
+          } : {
+            color: '#0f766e',
+            '@media (hover: hover)': {
+              '&:hover': {
+                bgcolor: 'rgba(13, 148, 136, 0.1)',
+                color: '#0f766e',
+              },
             },
-          },
+          }),
         }}
       >
         <QrCodeScannerIcon fontSize="small" />

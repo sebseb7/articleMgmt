@@ -97,6 +97,7 @@ export default class Login extends Component {
           <Button
             type="submit"
             variant="contained"
+            color="primary"
             fullWidth
             size="large"
             disabled={loading}

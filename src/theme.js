@@ -5,9 +5,9 @@ export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#0d9488',
+      main: '#0f766e',
       light: '#5eead4',
-      dark: '#0f766e',
+      dark: '#115e59',
       contrastText: '#ffffff',
     },
     secondary: {
@@ -135,17 +135,23 @@ export const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         containedPrimary: {
-          background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+          '--variant-containedBg': '#115e59',
+          backgroundColor: '#115e59',
+          backgroundImage: 'linear-gradient(135deg, #115e59 0%, #0f766e 100%)',
           boxShadow: '0 2px 8px rgba(13, 148, 136, 0.3)',
           color: '#ffffff',
           '@media (hover: hover)': {
             '&:hover': {
-              background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
+              '--variant-containedBg': '#134e4a',
+              backgroundColor: '#134e4a',
+              backgroundImage: 'linear-gradient(135deg, #134e4a 0%, #115e59 100%)',
               color: '#ffffff',
             },
           },
           '&:active': {
-            background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
+            '--variant-containedBg': '#134e4a',
+            backgroundColor: '#134e4a',
+            backgroundImage: 'linear-gradient(135deg, #134e4a 0%, #115e59 100%)',
             color: '#ffffff',
           },
         },
@@ -175,7 +181,7 @@ export const theme = createTheme({
           },
         },
         filledPrimary: {
-          backgroundColor: '#0d9488',
+          backgroundColor: '#115e59',
           color: '#ffffff',
           '@media (hover: hover)': {
             '&:hover': {
@@ -247,16 +253,22 @@ export const theme = createTheme({
             color: '#0f766e',
           },
           '&.Mui-selected': {
-            background: 'linear-gradient(135deg, #0f766e 0%, #0e7490 100%)',
+            '--variant-containedBg': '#115e59',
+            backgroundColor: '#115e59',
+            backgroundImage: 'linear-gradient(135deg, #115e59 0%, #0f766e 100%)',
             color: '#ffffff',
             '@media (hover: hover)': {
               '&:hover': {
-                background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
+                '--variant-containedBg': '#134e4a',
+                backgroundColor: '#134e4a',
+                backgroundImage: 'linear-gradient(135deg, #134e4a 0%, #115e59 100%)',
                 color: '#ffffff',
               },
             },
             '&:active': {
-              background: 'linear-gradient(135deg, #115e59 0%, #0e6b6b 100%)',
+              '--variant-containedBg': '#134e4a',
+              backgroundColor: '#134e4a',
+              backgroundImage: 'linear-gradient(135deg, #134e4a 0%, #115e59 100%)',
               color: '#ffffff',
             },
           },
@@ -266,7 +278,7 @@ export const theme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         colorPrimary: {
-          color: '#0d9488',
+          color: '#0f766e',
           '@media (hover: hover)': {
             '&:hover': {
               backgroundColor: 'rgba(13, 148, 136, 0.12)',
@@ -287,7 +299,7 @@ export const theme = createTheme({
             borderColor: 'rgba(13, 148, 136, 0.45)',
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#0d9488',
+            borderColor: '#0f766e',
           },
         },
       },

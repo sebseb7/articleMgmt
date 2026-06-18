@@ -1,3 +1,4 @@
 {
-  "githubLocalActions.actCommand": "act --artifact-server-path .artifacts"
+  "githubLocalActions.actCommand": "act --artifact-server-path .artifacts",
+  "vscode-edge-devtools.webhint": false
 }

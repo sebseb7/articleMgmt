@@ -66,6 +66,5 @@ jobs:
           name: playwright-report
           path: |
             playwright-report/index.html
-            tests/screenshots/**/*-actual.png
-            tests/screenshots/**/*-diff.png
+            test-results/**/*.png
           if-no-files-found: warn

@@ -105,13 +105,73 @@ export const api = {
 
   remove: (id) => fetch(`/api/articles/${id}`, { method: 'DELETE', ...credentials }).then(json),
 
-  import: (csvText) =>
-    fetch('/api/import', {
+  importCsv: async (csvText, onProgress) => {
+    const r = await fetch('/api/import', {
       method: 'POST',
       ...credentials,
       headers: { 'Content-Type': 'text/csv' },
       body: csvText,
-    }).then(json),
+    });
+    if (r.status === 401) {
+      const err = new Error('Unauthorized');
+      err.status = 401;
+      throw err;
+    }
+    const contentType = r.headers.get('content-type') || '';
+    if (!r.ok || !contentType.includes('ndjson')) {
+      return json(r);
+    }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result = null;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const event = JSON.parse(line);
+        if (event.phase === 'done') {
+          result = event;
+        } else if (event.phase === 'error') {
+          throw new Error(event.error || 'Import failed.');
+        } else {
+          await new Promise((resolve) => {
+            setTimeout(() => {
+              onProgress?.(event);
+              resolve();
+            }, 0);
+          });
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      const event = JSON.parse(buffer);
+      if (event.phase === 'done') {
+        result = event;
+      } else if (event.phase === 'error') {
+        throw new Error(event.error || 'Import failed.');
+      } else {
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            onProgress?.(event);
+            resolve();
+          }, 0);
+        });
+      }
+    }
+
+    if (!result) {
+      throw new Error('Import failed.');
+    }
+    return result;
+  },
 
   flushDb: () =>
     fetch('/api/flush', { method: 'POST', ...credentials }).then(json),

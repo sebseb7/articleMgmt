@@ -4,12 +4,6 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
 import { DEMO_ARTICLES, DEMO_USER } from '../demo-data.js';
-import {
-  collectBarcodesFromParsedArticles,
-  assertNoDuplicateBarcodes,
-} from '../barcodes.js';
-import { bumpLocalBarcodeMaxFromBarcodes } from '../metadata.js';
-import { findOrCreateCategory, clearCategories } from '../categories.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..', '..');
@@ -18,7 +12,21 @@ const dbPath = resolve(projectRoot, process.env.DB_PATH || 'data/data.db');
 
 function removeDbFiles(path) {
   for (const file of [path, `${path}-wal`, `${path}-shm`]) {
-    if (existsSync(file)) unlinkSync(file);
+    if (!existsSync(file)) continue;
+    try {
+      unlinkSync(file);
+    } catch (e) {
+      if (e.code === 'EBUSY' || e.code === 'EPERM') {
+        console.error(
+          `Cannot remove ${file}: the file is in use.\n`
+          + 'Stop the API server first (Ctrl+C in the terminal running npm run server or npm run dev),\n'
+          + 'close any open database files in your editor, then run seed:fresh again.\n'
+          + 'On Windows, check Task Manager for leftover "node.exe server/index.js" processes.',
+        );
+        process.exit(1);
+      }
+      throw e;
+    }
   }
 }
 
@@ -28,14 +36,20 @@ if (fresh) {
 }
 
 const { default: db } = await import('../db.js');
+const {
+  collectBarcodesFromParsedArticles,
+  assertNoDuplicateBarcodes,
+} = await import('../barcodes.js');
+const { bumpLocalBarcodeMaxFromBarcodes } = await import('../metadata.js');
+const { findOrCreateCategory, clearCategories } = await import('../categories.js');
 
 const insertArticle = db.prepare(`
   INSERT INTO articles
-    (item_uuid, item_name, tax_rate, category_id, image_url, visible_online,
+    (item_uuid, item_name, tax_rate, category_id, image_url, image_thumb_avif, visible_online,
      track_inventory, price, quantity, low_threshold, barcode,
      variant_uuid, sort_order)
   VALUES
-    (@item_uuid, @item_name, @tax_rate, @category_id, @image_url, @visible_online,
+    (@item_uuid, @item_name, @tax_rate, @category_id, @image_url, @image_thumb_avif, @visible_online,
      @track_inventory, @price, @quantity, @low_threshold, @barcode,
      @variant_uuid, @sort_order)
 `);
@@ -91,7 +105,12 @@ function importDemoArticles() {
     DEMO_ARTICLES.forEach((a, idx) => {
       const { variations, category, ...rest } = a;
       const category_id = findOrCreateCategory(category);
-      const info = insertArticle.run({ ...rest, category_id, sort_order: idx });
+      const info = insertArticle.run({
+        ...rest,
+        category_id,
+        sort_order: idx,
+        image_thumb_avif: rest.image_thumb_avif ?? null,
+      });
       const articleId = info.lastInsertRowid;
       variations.forEach((v, i) => {
         insertVariation.run(variationPayload(v, articleId, i));

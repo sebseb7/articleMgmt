@@ -119,4 +119,8 @@ if (db.prepare('PRAGMA table_info(articles)').all().some((c) => c.name === 'seo_
   }
 }
 
+if (!db.prepare('PRAGMA table_info(articles)').all().some((c) => c.name === 'image_thumb_avif')) {
+  db.exec('ALTER TABLE articles ADD COLUMN image_thumb_avif TEXT');
+}
+
 export default db;

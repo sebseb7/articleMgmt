@@ -4,6 +4,7 @@ import { api } from './api.js';
 import ArticleDialog from './ArticleDialog.jsx';
 import CategoryDialog from './CategoryDialog.jsx';
 import AppShell from './AppShell.jsx';
+import ImportProgressOverlay from './ImportProgressOverlay.jsx';
 import { theme } from './theme.js';
 import {
   DEFAULT_PAGE_SIZE, effectiveSearchQuery, categoryFilterKey, categoryFiltersEqual, mediaQueryString,
@@ -34,6 +35,7 @@ class App extends Component {
     changelogPage: 0,
     changelogPageSize: DEFAULT_PAGE_SIZE,
     changelogLoading: false,
+    importProgress: null,
   };
 
   searchRef = createRef();
@@ -435,8 +437,17 @@ class App extends Component {
     const { pageSize } = this.state;
     try {
       const text = await file.text();
-      const res = await api.import(text);
-      this.setState({ page: 0, search: '', query: '', categoryFilters: [] });
+      this.setState({ importProgress: { phase: 'start', articles: 0, thumbnails: 0 } });
+      const res = await api.importCsv(text, (progress) => {
+        this.setState({ importProgress: progress });
+      });
+      this.setState({
+        importProgress: null,
+        page: 0,
+        search: '',
+        query: '',
+        categoryFilters: [],
+      });
       await this.load(0, pageSize, '');
       await this.loadCategories();
       if (this.state.view === 'changelog') {
@@ -444,6 +455,7 @@ class App extends Component {
       }
       this.notify(`Imported ${res.articles} articles and ${res.variations} variations.`);
     } catch (err) {
+      this.setState({ importProgress: null });
       if (!this.handleAuthError(err)) this.notify(err.message, 'error');
     }
   };
@@ -560,10 +572,12 @@ class App extends Component {
       dialog, categoriesOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
       changelogEntries, changelogTotal, changelogPage, changelogPageSize, changelogLoading,
+      importProgress,
     } = this.state;
 
     return (
       <>
+        <ImportProgressOverlay progress={importProgress} />
         <AppShell
           user={user}
           onLogout={onLogout}

@@ -32,10 +32,15 @@ ModuleRegistry.registerModules([
 ]);
 
 const ARTICLE_ROW_HEIGHT = 52;
-const NON_EXPAND_CLICK_COLUMNS = new Set(['edit', 'delete']);
+const NON_EXPAND_CLICK_COLUMNS = new Set(['edit', 'delete', 'thumb']);
 const DETAIL_HEADER_HEIGHT = 52;
 const DETAIL_VARIATION_ROW_HEIGHT = 41;
 const DETAIL_VERTICAL_PADDING = 24;
+
+function thumbSrc(imageThumbAvif) {
+  const base64 = String(imageThumbAvif ?? '').trim();
+  return base64 ? `data:image/avif;base64,${base64}` : null;
+}
 
 function isExpandableArticleCell(params) {
   const colId = params.column?.getColId();
@@ -121,6 +126,32 @@ function renderBarcodeValue(barcode, articleId, variationId, context) {
       )}
     </Box>
   );
+}
+
+class ThumbCellRenderer extends Component {
+  render() {
+    const { article } = this.props.data;
+    const src = thumbSrc(article.image_thumb_avif);
+    if (!src) return null;
+    return (
+      <Box
+        component="img"
+        src={src}
+        alt=""
+        width={32}
+        height={32}
+        sx={{
+          display: 'block',
+          width: 32,
+          height: 32,
+          objectFit: 'cover',
+          borderRadius: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      />
+    );
+  }
 }
 
 class EditCellRenderer extends Component {
@@ -323,6 +354,15 @@ export default class ArticlesGrid extends PureComponent {
       minWidth: 52,
       maxWidth: 52,
       cellRenderer: ExpandCellRenderer,
+      cellStyle: (params) => articleCellStyle(params, { justifyContent: 'center' }),
+    },
+    {
+      colId: 'thumb',
+      headerName: '',
+      width: 56,
+      minWidth: 56,
+      maxWidth: 56,
+      cellRenderer: ThumbCellRenderer,
       cellStyle: (params) => articleCellStyle(params, { justifyContent: 'center' }),
     },
     {

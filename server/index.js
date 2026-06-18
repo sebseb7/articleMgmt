@@ -29,6 +29,7 @@ import {
 } from './barcodes.js';
 import { startBackupScheduler, backupDatabase } from './backup.js';
 import { logChange, getChangelogPage } from './changelog.js';
+import { enrichArticlesWithImageThumbs, resetImagesDir } from './images.js';
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -41,11 +42,11 @@ const PORT = process.env.PORT || 3991;
 // ---------- Prepared statements ----------
 const insertArticle = db.prepare(`
   INSERT INTO articles
-    (item_uuid, item_name, tax_rate, category_id, image_url, visible_online,
+    (item_uuid, item_name, tax_rate, category_id, image_url, image_thumb_avif, visible_online,
      track_inventory, price, quantity, low_threshold, barcode,
      variant_uuid, sort_order)
   VALUES
-    (@item_uuid, @item_name, @tax_rate, @category_id, @image_url, @visible_online,
+    (@item_uuid, @item_name, @tax_rate, @category_id, @image_url, @image_thumb_avif, @visible_online,
      @track_inventory, @price, @quantity, @low_threshold, @barcode,
      @variant_uuid, @sort_order)
 `);
@@ -84,6 +85,7 @@ function articlePayload(body, sortOrder) {
       ? null
       : Number(categoryId),
     image_url: body.image_url ?? null,
+    image_thumb_avif: body.image_thumb_avif ?? null,
     visible_online: body.visible_online ? 1 : 0,
     track_inventory: body.track_inventory ? 1 : 0,
     price: body.price ?? null,
@@ -602,7 +604,8 @@ app.post('/api/flush', requireAuth, async (req, res) => {
 });
 
 // Import CSV (replaces all existing data). Accepts raw CSV text or { csv }.
-app.post('/api/import', requireAuth, (req, res) => {
+// Streams NDJSON progress events, then a final { phase: "done", ... } line.
+app.post('/api/import', requireAuth, async (req, res) => {
   const text = typeof req.body === 'string' ? req.body : req.body?.csv;
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'No CSV content provided.' });
@@ -622,38 +625,62 @@ app.post('/api/import', requireAuth, (req, res) => {
   }
   bumpLocalBarcodeMaxFromBarcodes(importedBarcodes);
 
-  const tx = db.transaction(() => {
-    db.prepare('DELETE FROM variations').run();
-    db.prepare('DELETE FROM articles').run();
-    clearCategories();
-    db.prepare(
-      "DELETE FROM sqlite_sequence WHERE name IN ('articles','variations','categories')"
-    ).run();
+  const thumbnailTotal = articles.filter((a) => a.image_url).length;
+  res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.flushHeaders?.();
 
-    let variationCount = 0;
-    articles.forEach((a, idx) => {
-      const { variations, category, ...rest } = a;
-      const category_id = findOrCreateCategory(category);
-      const info = insertArticle.run({ ...rest, category_id, sort_order: idx });
-      const articleId = info.lastInsertRowid;
-      variations.forEach((v, i) => {
-        insertVariation.run(variationPayload(v, articleId, i));
-      });
-      variationCount += variations.length > 0 ? variations.length : 1;
-    });
-    return variationCount;
-  });
+  const writeEvent = (event) => {
+    res.write(`${JSON.stringify(event)}\n`);
+    res.flush?.();
+  };
 
   try {
-    const variationCount = tx();
+    writeEvent({
+      phase: 'start',
+      articles: articles.length,
+      thumbnails: thumbnailTotal,
+    });
+
+    resetImagesDir();
+    articles = await enrichArticlesWithImageThumbs(articles, (progress) => {
+      writeEvent({ phase: 'thumbnail', ...progress });
+    });
+
+    writeEvent({ phase: 'saving' });
+
+    const variationCount = db.transaction(() => {
+      db.prepare('DELETE FROM variations').run();
+      db.prepare('DELETE FROM articles').run();
+      clearCategories();
+      db.prepare(
+        "DELETE FROM sqlite_sequence WHERE name IN ('articles','variations','categories')"
+      ).run();
+
+      let count = 0;
+      articles.forEach((a, idx) => {
+        const { variations, category, ...rest } = a;
+        const category_id = findOrCreateCategory(category);
+        const info = insertArticle.run({ ...rest, category_id, sort_order: idx });
+        const articleId = info.lastInsertRowid;
+        variations.forEach((v, i) => {
+          insertVariation.run(variationPayload(v, articleId, i));
+        });
+        count += variations.length > 0 ? variations.length : 1;
+      });
+      return count;
+    })();
+
     logChange(req.user, 'import', {
       entityType: 'database',
       summary: `Imported ${articles.length} article(s) and ${variationCount} variation row(s) from CSV`,
       details: { articles: articles.length, variations: variationCount },
     });
-    res.json({ articles: articles.length, variations: variationCount });
+    writeEvent({ phase: 'done', articles: articles.length, variations: variationCount });
+    res.end();
   } catch (e) {
-    res.status(400).json({ error: String(e.message) });
+    writeEvent({ phase: 'error', error: String(e.message) });
+    res.end();
   }
 });
 

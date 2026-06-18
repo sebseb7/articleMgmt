@@ -11,7 +11,7 @@ export default defineConfig({
   workers: 1,
   timeout: 60_000,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${testWebPort}`,

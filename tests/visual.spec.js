@@ -69,10 +69,15 @@ test.describe('visual regression', () => {
     await expect(page).toHaveScreenshot('dialog-categories.png', { fullPage: true });
   });
 
-  test('mobile home', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
-    await waitForArticlesLoaded(page);
-    await expect(page).toHaveScreenshot('mobile-home.png', { fullPage: true });
+  test.describe('mobile', () => {
+    test.use({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+
+    test('home', async ({ page }) => {
+      await expect(page).toHaveScreenshot('mobile-home.png', { fullPage: true });
+    });
   });
 });

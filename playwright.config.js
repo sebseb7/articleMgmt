@@ -12,13 +12,19 @@ export default defineConfig({
   timeout: 60_000,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never' }], ['./tests/reference-snapshot-reporter.js']],
   use: {
     baseURL: `http://localhost:${testWebPort}`,
     timezoneId: 'Europe/Berlin',
     locale: 'de-DE',
     colorScheme: 'light',
     trace: 'on-first-retry',
+    launchOptions: {
+      args: [
+        '--font-render-hinting=none',
+        '--disable-font-subpixel-positioning',
+      ],
+    },
   },
   expect: {
     // Full-page shots: maxDiffPixelRatio is a poor fit (0.5% of ~2M px ≈ 9k px budget).

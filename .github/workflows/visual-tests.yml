@@ -68,3 +68,11 @@ jobs:
             playwright-report/
             test-results/**/*.png
           if-no-files-found: warn
+
+      - name: Upload reference snapshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: snapshot-reference
+          path: tests/screenshots-reference/
+          if-no-files-found: warn

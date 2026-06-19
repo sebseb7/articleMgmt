@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "label": "Lighthouse",
-  "message": "92",
-  "color": "brightgreen"
+  "label": "performance",
+  "message": "70",
+  "color": "yellow"
 }

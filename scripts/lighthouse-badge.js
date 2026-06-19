@@ -28,10 +28,18 @@ if (!run?.summary) {
   throw new Error(`No Lighthouse summary found in ${manifestPath}`);
 }
 
-const performance = Math.round((run.summary.performance ?? 0) * 100);
+const categories = [
+  { key: 'performance', label: 'performance', file: 'performance.json' },
+  { key: 'accessibility', label: 'accessibility', file: 'accessibility.json' },
+  { key: 'best-practices', label: 'best practices', file: 'best-practices.json' },
+  { key: 'seo', label: 'SEO', file: 'seo.json' },
+];
 
 mkdirSync(badgesDir, { recursive: true });
-writeFileSync(
-  resolve(badgesDir, 'performance.json'),
-  `${JSON.stringify(toBadge('Lighthouse', performance), null, 2)}\n`,
-);
+for (const { key, label, file } of categories) {
+  const score = Math.round((run.summary[key] ?? 0) * 100);
+  writeFileSync(
+    resolve(badgesDir, file),
+    `${JSON.stringify(toBadge(label, score), null, 2)}\n`,
+  );
+}

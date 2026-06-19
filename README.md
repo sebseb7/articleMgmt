@@ -3,7 +3,10 @@
 ![SumUp Article Editor](tests/screenshots/visual.spec.js-snapshots/dialog-new-article-variations.png)
 
 [![Visual tests](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml/badge.svg)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
-[![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/performance.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
+[![Lighthouse performance](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/performance.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
+[![Lighthouse accessibility](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/accessibility.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
+[![Lighthouse best practices](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/best-practices.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
+[![Lighthouse SEO](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/seo.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 
 Import, manage, and re-export SumUp item CSVs. Vite + React + MUI frontend, Express + better-sqlite3 backend.
 

@@ -22,6 +22,11 @@ export function effectiveSearchQuery(query) {
   return compactLength(query) >= MIN_SEARCH_CHARS ? query.trim() : '';
 }
 
+export function isBarcodeLike(query) {
+  const trimmed = String(query ?? '').trim();
+  return trimmed.length >= MIN_SEARCH_CHARS && /^\d+$/.test(trimmed);
+}
+
 export function categoryFilterKey(categoryId) {
   return categoryId == null ? 'none' : categoryId;
 }

@@ -9,6 +9,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import ArticleIcon from '@mui/icons-material/Article';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 
 const SUMUP_CATALOG_URL = 'https://me.sumup.com/catalog';
 
@@ -17,7 +18,10 @@ export default class AppHeader extends PureComponent {
   fileRef = createRef();
 
   render() {
-    const { user, isMobile, view, onImportFile, onExport, onFlushDb, onLogout, onToggleView } = this.props;
+    const {
+      user, isMobile, view, onImportFile, onExport, onFlushDb, onLogout, onToggleView,
+      onOpenMissingList,
+    } = this.props;
     const onChangelog = view === 'articles';
 
     return (
@@ -60,7 +64,7 @@ export default class AppHeader extends PureComponent {
             />
             {isMobile ? (
               <>
-                <Tooltip title="SumUp Catalog">
+                <Tooltip title="SumUp">
                   <IconButton
                     color="inherit"
                     component="a"
@@ -74,6 +78,11 @@ export default class AppHeader extends PureComponent {
                 <Tooltip title={onChangelog ? 'Changelog' : 'Articles'}>
                   <IconButton color="inherit" onClick={onToggleView}>
                     {onChangelog ? <HistoryIcon /> : <ArticleIcon />}
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Missing barcodes">
+                  <IconButton color="inherit" onClick={onOpenMissingList}>
+                    <QrCode2Icon />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Import CSV">
@@ -107,7 +116,7 @@ export default class AppHeader extends PureComponent {
                   rel="noopener noreferrer"
                   startIcon={<StorefrontIcon />}
                 >
-                  SumUp Catalog
+                  SumUp
                 </Button>
                 <Button
                   color="inherit"
@@ -115,6 +124,13 @@ export default class AppHeader extends PureComponent {
                   onClick={onToggleView}
                 >
                   {onChangelog ? 'Changelog' : 'Articles'}
+                </Button>
+                <Button
+                  color="inherit"
+                  startIcon={<QrCode2Icon />}
+                  onClick={onOpenMissingList}
+                >
+                  Missing barcodes
                 </Button>
                 <Button color="inherit" startIcon={<UploadIcon />} onClick={() => this.fileRef.current?.click()}>
                   Import CSV

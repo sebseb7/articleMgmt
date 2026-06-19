@@ -1,6 +1,16 @@
 /** Deterministic demo articles for seeding and visual regression tests. */
 export const DEMO_USER = { username: 'demo', password: 'demo' };
 
+/** Unknown barcodes logged for visual tests (not used by any article/variation). */
+export const DEMO_MISSING_BARCODES = [
+  { barcode: '2342000099991', note: 'Found at loading dock' },
+  { barcode: '2342000099992', note: null },
+  { barcode: '2342000099993', note: 'Needs relabeling' },
+];
+
+/** Not on the missing list — use for "Barcode not found" dialog screenshots. */
+export const DEMO_UNKNOWN_BARCODE = '2342000099999';
+
 export const DEMO_ARTICLES = [
   {
     item_uuid: 'a1111111-1111-1111-1111-111111111111',

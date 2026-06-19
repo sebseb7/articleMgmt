@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { waitForArticlesLoaded, stabilizePage } from './helpers.js';
+import {
+  waitForArticlesLoaded,
+  stabilizePage,
+  openMissingBarcodeDialog,
+  openMissingListDialog,
+} from './helpers.js';
+
+const DEMO_UNKNOWN_BARCODE = '2342000099999';
+const DEMO_EXISTING_MISSING_BARCODE = '2342000099991';
 
 test.describe('visual regression', () => {
   test.use({
@@ -67,6 +75,23 @@ test.describe('visual regression', () => {
     await page.getByRole('button', { name: 'Categories' }).click();
     await page.getByRole('heading', { name: 'Categories' }).waitFor();
     await expect(page).toHaveScreenshot('dialog-categories.png', { fullPage: true });
+  });
+
+  test('missing barcode dialog (not found)', async ({ page }) => {
+    await openMissingBarcodeDialog(page, DEMO_UNKNOWN_BARCODE);
+    await page.getByRole('heading', { name: 'Barcode not found' }).waitFor();
+    await expect(page).toHaveScreenshot('dialog-missing-barcode-new.png', { fullPage: true });
+  });
+
+  test('missing barcode dialog (on list)', async ({ page }) => {
+    await openMissingBarcodeDialog(page, DEMO_EXISTING_MISSING_BARCODE);
+    await page.getByRole('heading', { name: 'Barcode on missing list' }).waitFor();
+    await expect(page).toHaveScreenshot('dialog-missing-barcode-existing.png', { fullPage: true });
+  });
+
+  test('missing barcodes list dialog', async ({ page }) => {
+    await openMissingListDialog(page);
+    await expect(page).toHaveScreenshot('dialog-missing-list.png', { fullPage: true });
   });
 
   test.describe('mobile', () => {

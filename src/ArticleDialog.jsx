@@ -2,7 +2,7 @@ import { Component } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Grid, FormControlLabel, Switch, Typography, Box, IconButton, Divider,
-  Table, TableHead, TableRow, TableCell, TableBody, Tooltip,
+  Table, TableHead, TableRow, TableCell, TableBody,
   FormControl, InputLabel, Select, MenuItem, InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -326,9 +326,7 @@ export default class ArticleDialog extends Component {
                       />
                     </TableCell>
                     <TableCell>
-                      <Tooltip title="Remove">
-                        <IconButton size="small" onClick={() => this.removeVar(i)}><DeleteIcon fontSize="small" /></IconButton>
-                      </Tooltip>
+                      <IconButton size="small" onClick={() => this.removeVar(i)}><DeleteIcon fontSize="small" /></IconButton>
                     </TableCell>
                   </TableRow>
                 ))}

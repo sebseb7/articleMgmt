@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
-  Table, TableHead, TableRow, TableCell, TableBody, IconButton, Tooltip,
+  Table, TableHead, TableRow, TableCell, TableBody, IconButton,
   Box, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -168,29 +168,21 @@ export default class CategoryDialog extends Component {
                     <TableCell align="right">
                       {editingId === cat.id ? (
                         <>
-                          <Tooltip title="Save">
-                            <IconButton size="small" onClick={this.handleSaveEdit}>
-                              <CheckIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Cancel">
-                            <IconButton size="small" onClick={this.cancelEdit}>
-                              <CloseIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <IconButton size="small" onClick={this.handleSaveEdit}>
+                            <CheckIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={this.cancelEdit}>
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
                         </>
                       ) : (
                         <>
-                          <Tooltip title="Edit">
-                            <IconButton size="small" onClick={() => this.startEdit(cat)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton size="small" onClick={() => this.handleDelete(cat)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <IconButton size="small" onClick={() => this.startEdit(cat)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => this.handleDelete(cat)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
                         </>
                       )}
                     </TableCell>

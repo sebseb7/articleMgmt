@@ -58,6 +58,27 @@ export const api = {
   generateBarcode: () =>
     fetch('/api/barcode/generate', { method: 'POST', ...credentials }).then(json),
 
+  lookupBarcode: (barcode) => {
+    const params = new URLSearchParams({ barcode: String(barcode) });
+    return fetch(`/api/barcodes/lookup?${params}`, credentials).then(json);
+  },
+
+  listMissingBarcodes: () => fetch('/api/missing', credentials).then(json),
+
+  upsertMissingBarcode: (barcode, note) =>
+    fetch('/api/missing', {
+      method: 'PUT',
+      ...credentials,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ barcode, note }),
+    }).then(json),
+
+  removeMissingBarcode: (barcode) =>
+    fetch(`/api/missing/${encodeURIComponent(barcode)}`, {
+      method: 'DELETE',
+      ...credentials,
+    }).then(json),
+
   listCategories: () => fetch('/api/categories', credentials).then(json),
 
   createCategory: (name) =>

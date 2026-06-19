@@ -3,11 +3,14 @@ import { enqueueSnackbar } from 'notistack';
 import { api } from './api.js';
 import ArticleDialog from './ArticleDialog.jsx';
 import CategoryDialog from './CategoryDialog.jsx';
+import MissingBarcodeDialog from './MissingBarcodeDialog.jsx';
+import MissingListDialog from './MissingListDialog.jsx';
 import AppShell from './AppShell.jsx';
 import ImportProgressOverlay from './ImportProgressOverlay.jsx';
 import { theme } from './theme.js';
 import {
   DEFAULT_PAGE_SIZE, effectiveSearchQuery, categoryFilterKey, categoryFiltersEqual, mediaQueryString,
+  isBarcodeLike,
 } from './articleTableUtils.js';
 
 class App extends Component {
@@ -25,7 +28,10 @@ class App extends Component {
     categoryCounts: [],
     missingBarcodeOnly: false,
     dialog: { open: false, initial: null },
+    missingBarcodeDialog: { open: false, barcode: '', initialNote: '', isExisting: false },
     categoriesOpen: false,
+    missingListWantsToOpen: false,
+    missingListOpen: false,
     categories: [],
     isMobile: false,
     barcodeCapture: null,
@@ -93,6 +99,11 @@ class App extends Component {
       this.searchRef.current?.focus({ preventScroll: true });
     }
 
+    const { missingBarcodeDialog } = this.state;
+    if (prevState.missingBarcodeDialog.open && !missingBarcodeDialog.open && !this.state.isMobile) {
+      this.searchRef.current?.focus({ preventScroll: true });
+    }
+
     if (
       (!prevState.dialog.open && dialog.open)
       || (prevState.dialog.open && !dialog.open)
@@ -102,7 +113,8 @@ class App extends Component {
       this.cancelBarcodeCapture();
     }
 
-    if (prevState.dialog.open !== dialog.open) {
+    if (prevState.dialog.open !== dialog.open
+      || prevState.missingBarcodeDialog.open !== missingBarcodeDialog.open) {
       this.teardownKeydownListener();
       this.setupKeydownListener();
     }
@@ -353,7 +365,7 @@ class App extends Component {
   };
 
   setupKeydownListener = () => {
-    if (this.state.dialog.open) return;
+    if (this.state.dialog.open || this.state.missingBarcodeDialog.open) return;
     this.handleKeydown = (e) => {
       const target = e.target;
       const tag = target?.tagName?.toLowerCase();
@@ -528,10 +540,64 @@ class App extends Component {
     this.setState({ missingBarcodeOnly, page: 0 });
   };
 
-  handleSearchEnter = () => {
+  handleSearchEnter = async () => {
     const { query } = this.state;
     this.applySearch(query);
     this.selectSearchText();
+
+    const trimmed = query.trim();
+    if (!isBarcodeLike(trimmed)) return;
+
+    try {
+      const { article, variation, missing } = await api.lookupBarcode(trimmed);
+      if (article || variation) return;
+
+      this.setState({
+        missingBarcodeDialog: {
+          open: true,
+          barcode: trimmed,
+          initialNote: missing?.note ?? '',
+          isExisting: Boolean(missing),
+        },
+      });
+    } catch (e) {
+      if (!this.handleAuthError(e)) this.notify(e.message, 'error');
+    }
+  };
+
+  closeMissingBarcodeDialog = () => {
+    this.setState({
+      missingBarcodeDialog: {
+        open: false, barcode: '', initialNote: '', isExisting: false,
+      },
+    });
+  };
+
+  handleSaveMissingBarcode = async (barcode, note) => {
+    const { isExisting } = this.state.missingBarcodeDialog;
+    try {
+      await api.upsertMissingBarcode(barcode, note);
+      this.closeMissingBarcodeDialog();
+      if (isExisting) {
+        this.notify('Missing barcode updated.', 'info');
+      } else {
+        this.notify('Barcode saved to missing list.');
+      }
+    } catch (e) {
+      if (this.handleAuthError(e)) return;
+      throw e;
+    }
+  };
+
+  handleRemoveMissingBarcode = async (barcode) => {
+    try {
+      await api.removeMissingBarcode(barcode);
+      this.closeMissingBarcodeDialog();
+      this.notify('Barcode removed from missing list.', 'error');
+    } catch (e) {
+      if (this.handleAuthError(e)) return;
+      throw e;
+    }
   };
 
   openNewArticle = () => {
@@ -554,6 +620,18 @@ class App extends Component {
     this.setState({ categoriesOpen: false });
   };
 
+  openMissingListDialog = () => {
+    this.setState({ missingListWantsToOpen: true });
+  };
+
+  handleMissingListOpen = () => {
+    this.setState({ missingListOpen: true });
+  };
+
+  closeMissingListDialog = () => {
+    this.setState({ missingListOpen: false, missingListWantsToOpen: false });
+  };
+
   handleCategoriesChanged = async () => {
     const { page, pageSize, search } = this.state;
     await this.loadCategories();
@@ -569,7 +647,7 @@ class App extends Component {
       view,
       articles, total, page, pageSize, stats, loading, query, search,
       missingBarcodeOnly, categoryFilters, categoryCounts,
-      dialog, categoriesOpen, categories, isMobile,
+      dialog, missingBarcodeDialog, categoriesOpen, missingListWantsToOpen, missingListOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
       changelogEntries, changelogTotal, changelogPage, changelogPageSize, changelogLoading,
       importProgress,
@@ -600,6 +678,7 @@ class App extends Component {
           onImportFile={this.handleImportFile}
           onExport={this.handleExport}
           onFlushDb={this.handleFlushDb}
+          onOpenMissingList={this.openMissingListDialog}
           articles={articles}
           total={total}
           page={page}
@@ -635,6 +714,23 @@ class App extends Component {
           open={categoriesOpen}
           onClose={this.closeCategoriesDialog}
           onChanged={this.handleCategoriesChanged}
+        />
+
+        <MissingBarcodeDialog
+          open={missingBarcodeDialog.open}
+          barcode={missingBarcodeDialog.barcode}
+          initialNote={missingBarcodeDialog.initialNote}
+          isExisting={missingBarcodeDialog.isExisting}
+          onClose={this.closeMissingBarcodeDialog}
+          onSave={this.handleSaveMissingBarcode}
+          onRemove={this.handleRemoveMissingBarcode}
+        />
+
+        <MissingListDialog
+          wantsToOpen={missingListWantsToOpen}
+          open={missingListOpen}
+          onOpen={this.handleMissingListOpen}
+          onClose={this.closeMissingListDialog}
         />
       </>
     );

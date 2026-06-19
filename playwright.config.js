@@ -30,7 +30,7 @@ export default defineConfig({
     // Full-page shots: maxDiffPixelRatio is a poor fit (0.5% of ~2M px ≈ 9k px budget).
     // Use a tight pixel cap so localized typography changes (e.g. barcode "missing") fail.
     toHaveScreenshot: {
-      maxDiffPixels: 300,
+      maxDiffPixels: 100,
       animations: 'disabled',
     },
   },

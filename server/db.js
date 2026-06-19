@@ -79,6 +79,11 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_changelog_created ON changelog(created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS missing (
+    barcode TEXT NOT NULL PRIMARY KEY,
+    note    TEXT
+  );
 `);
 
 db.prepare(

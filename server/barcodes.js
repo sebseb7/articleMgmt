@@ -8,18 +8,31 @@ export function normalizeBarcode(value) {
 
 function findArticleByBarcode(barcode) {
   return db.prepare(`
-    SELECT id, item_name FROM articles
+    SELECT id, item_name, barcode FROM articles
     WHERE barcode IS NOT NULL AND TRIM(barcode) = ?
   `).get(barcode);
 }
 
 function findVariationByBarcode(barcode) {
   return db.prepare(`
-    SELECT v.id, v.article_id, a.item_name
+    SELECT v.id, v.article_id, v.variation_name, v.barcode, a.item_name
     FROM variations v
     JOIN articles a ON a.id = v.article_id
     WHERE v.barcode IS NOT NULL AND TRIM(v.barcode) = ?
   `).get(barcode);
+}
+
+export function lookupBarcode(barcode) {
+  const value = normalizeBarcode(barcode);
+  if (!value) {
+    return { article: null, variation: null };
+  }
+  const article = findArticleByBarcode(value);
+  if (article) {
+    return { article, variation: null };
+  }
+  const variation = findVariationByBarcode(value);
+  return { article: null, variation: variation ?? null };
 }
 
 export function collectBarcodesFromArticleBody(body) {

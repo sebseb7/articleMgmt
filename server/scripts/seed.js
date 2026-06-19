@@ -3,7 +3,7 @@ import { existsSync, unlinkSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
-import { DEMO_ARTICLES, DEMO_USER } from '../demo-data.js';
+import { DEMO_ARTICLES, DEMO_USER, DEMO_MISSING_BARCODES } from '../demo-data.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..', '..');
@@ -123,11 +123,27 @@ function importDemoArticles() {
   return tx();
 }
 
+function seedMissingBarcodes() {
+  const upsert = db.prepare(`
+    INSERT INTO missing (barcode, note) VALUES (?, ?)
+    ON CONFLICT(barcode) DO UPDATE SET note = excluded.note
+  `);
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM missing').run();
+    for (const entry of DEMO_MISSING_BARCODES) {
+      upsert.run(entry.barcode, entry.note);
+    }
+  });
+  tx();
+}
+
 try {
   ensureDemoUser();
   const variationCount = importDemoArticles();
+  seedMissingBarcodes();
   console.log(
-    `Seeded ${DEMO_ARTICLES.length} articles (${variationCount} variations) and user "${DEMO_USER.username}".`,
+    `Seeded ${DEMO_ARTICLES.length} articles (${variationCount} variations), `
+    + `${DEMO_MISSING_BARCODES.length} missing barcodes, and user "${DEMO_USER.username}".`,
   );
   console.log(`Database: ${dbPath}`);
 } catch (e) {

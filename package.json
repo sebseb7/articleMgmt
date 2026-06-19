@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Import/manage/export SumUp item CSVs with a Vite + React + MUI frontend and a better-sqlite3 backend.",
   "scripts": {
-    "dev": "concurrently -n server,web -c blue,green \"npm:server\" \"npm:web\"",
+    "dev": "concurrently -n server,web -c blue,green \"npm:server:watch\" \"npm:web\"",
     "dev:test": "concurrently -n server,web -c blue,green \"npm:server:test\" \"npm:web:test\"",
     "server": "node server/index.js",
+    "server:watch": "node --watch --watch-path=server server/index.js",
     "server:test": "node server/index.js",
     "web": "vite",
     "web:test": "vite --port 4993",

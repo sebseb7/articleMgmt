@@ -1,5 +1,5 @@
 import db from './db.js';
-import { normalizeBarcode } from './barcodes.js';
+import { lookupBarcode, normalizeBarcode } from './barcodes.js';
 
 const getByBarcode = db.prepare(
   'SELECT barcode, note FROM missing WHERE barcode = ?',
@@ -26,9 +26,20 @@ export function listMissingBarcodes() {
 export function upsertMissingBarcode(barcode, note) {
   const value = normalizeBarcode(barcode);
   if (!value) throw new Error('Barcode is required.');
+  const { article, variation } = lookupBarcode(value);
+  if (article || variation) {
+    const err = new Error(`Barcode "${value}" is already used by an article or variation.`);
+    err.code = 'barcode_in_catalog';
+    throw err;
+  }
   const trimmedNote = String(note ?? '').trim();
-  upsertMissing.run(value, trimmedNote || null);
-  return { barcode: value, note: trimmedNote || null };
+  const nextNote = trimmedNote || null;
+  const existing = getByBarcode.get(value);
+  if (existing && existing.note === nextNote) {
+    return { barcode: value, note: nextNote, unchanged: true };
+  }
+  upsertMissing.run(value, nextNote);
+  return { barcode: value, note: nextNote };
 }
 
 export function deleteMissingBarcode(barcode) {

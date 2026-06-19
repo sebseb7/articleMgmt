@@ -8,13 +8,18 @@ const json = async (r) => {
   }
   if (!r.ok) {
     let message = r.statusText;
+    let code;
     try {
       const body = await r.json();
       message = body.error || message;
+      code = body.code;
     } catch {
       // ignore non-json error bodies
     }
-    throw new Error(message);
+    const err = new Error(message);
+    err.status = r.status;
+    if (code) err.code = code;
+    throw err;
   }
   return r.json();
 };

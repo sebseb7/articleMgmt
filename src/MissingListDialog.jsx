@@ -113,6 +113,12 @@ export default class MissingListDialog extends Component {
     return this.state.entries.find((entry) => entry.barcode === value) ?? null;
   };
 
+  ignoreCatalogBarcode = () => {
+    this.setState({ newBarcode: '', newNote: '', error: '' }, this.refocusBarcodeField);
+  };
+
+  isCatalogBarcodeError = (e) => e.code === 'barcode_in_catalog';
+
   refocusBarcodeField = () => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -163,16 +169,19 @@ export default class MissingListDialog extends Component {
     this.setState({ error: '' });
 
     const existing = this.findEntry(barcode);
-    if (existing) {
-      this.setState({ newNote: existing.note ?? '' }, this.focusNoteField);
-      return;
-    }
-
     try {
-      await api.upsertMissingBarcode(barcode, '');
+      const entry = await api.upsertMissingBarcode(barcode, existing?.note ?? '');
       await this.reload();
-      this.setState({ newNote: '' }, this.selectBarcodeField);
+      if (existing) {
+        this.setState({ newNote: entry.note ?? '' }, this.focusNoteField);
+      } else {
+        this.setState({ newNote: '' }, this.selectBarcodeField);
+      }
     } catch (e) {
+      if (this.isCatalogBarcodeError(e)) {
+        this.ignoreCatalogBarcode();
+        return;
+      }
       this.setState({ error: e.message });
     }
   };
@@ -187,6 +196,10 @@ export default class MissingListDialog extends Component {
       await this.reload();
       this.setState({ newNote: '' }, this.selectBarcodeField);
     } catch (e) {
+      if (this.isCatalogBarcodeError(e)) {
+        this.ignoreCatalogBarcode();
+        return;
+      }
       this.setState({ error: e.message });
     }
   };
@@ -213,6 +226,10 @@ export default class MissingListDialog extends Component {
       await this.reload();
       this.refocusBarcodeField();
     } catch (e) {
+      if (this.isCatalogBarcodeError(e)) {
+        this.setState({ editingBarcode: null, editNote: '' }, this.refocusBarcodeField);
+        return;
+      }
       this.setState({ error: e.message });
     }
   };

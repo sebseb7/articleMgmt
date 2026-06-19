@@ -455,8 +455,7 @@ class App extends Component {
           e.preventDefault();
           this.searchRef.current?.focus();
         }
-        this.applySearch(this.state.query);
-        this.selectSearchText();
+        void this.handleSearchEnter();
         return;
       }
 
@@ -587,7 +586,7 @@ class App extends Component {
   };
 
   handleSearchEnter = async () => {
-    const { query } = this.state;
+    const query = this.searchRef.current?.value ?? this.state.query;
     this.applySearch(query);
     this.selectSearchText();
 

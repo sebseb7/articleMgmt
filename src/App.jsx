@@ -309,7 +309,6 @@ class App extends Component {
       return;
     }
     if (target === 'missing') {
-      this.setState({ view: 'articles' });
       this.openMissingListDialog();
     }
   };

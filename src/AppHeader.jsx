@@ -93,7 +93,7 @@ export default class AppHeader extends PureComponent {
     const { view, missingListOpen } = this.props;
     const { navAnchor, settingsAnchor } = this.state;
     const articlesSelected = view === 'articles' && !missingListOpen;
-    const changelogSelected = view === 'changelog';
+    const changelogSelected = view === 'changelog' && !missingListOpen;
     const missingSelected = missingListOpen;
 
     const navTrigger = isIcon ? (

@@ -12,7 +12,7 @@
     "server:test": "node server/index.js",
     "web": "vite",
     "web:test": "vite --port 4993",
-    "build": "vite build",
+    "build": "vite build && node server/prerender-index.js",
     "preview": "vite preview",
     "user": "node server/scripts/user.js",
     "seed": "node server/scripts/seed.js",

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress } from '@mui/material';
@@ -8,7 +8,8 @@ import { theme } from './theme.js';
 import ModalScrollLock from './ModalScrollLock.jsx';
 import { api } from './api.js';
 import Login from './Login.jsx';
-import App from './App.jsx';
+
+const App = lazy(() => import('./App.jsx'));
 
 class Root extends Component {
   state = {
@@ -36,24 +37,26 @@ class Root extends Component {
   };
 
   render() {
-    const { user, checking } = this.state;
+    const { user } = this.state;
 
-    if (checking) {
+    if (user) {
       return (
-        <Box
-          component="main"
-          sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        <Suspense
+          fallback={(
+            <Box
+              component="main"
+              sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <CircularProgress />
+            </Box>
+          )}
         >
-          <CircularProgress />
-        </Box>
+          <App user={user} onLogout={this.handleLogout} />
+        </Suspense>
       );
     }
 
-    if (!user) {
-      return <Login onLogin={this.handleLogin} />;
-    }
-
-    return <App user={user} onLogout={this.handleLogout} />;
+    return <Login onLogin={this.handleLogin} />;
   }
 }
 

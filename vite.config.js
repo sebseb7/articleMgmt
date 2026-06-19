@@ -1,10 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { injectLoginShell } from './server/loginShell.js';
 
 const nodeModules = /node_modules/;
 
+function loginPrerenderPlugin() {
+  return {
+    name: 'login-prerender',
+    transformIndexHtml(html) {
+      return injectLoginShell(html);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), loginPrerenderPlugin()],
   build: {
     chunkSizeWarningLimit: 700,
     rolldownOptions: {

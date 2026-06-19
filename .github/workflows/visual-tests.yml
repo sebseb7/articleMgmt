@@ -69,13 +69,6 @@ jobs:
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}
         run: npm run lighthouse:badge
 
-      - name: Commit Lighthouse badge
-        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'chore: update Lighthouse badge [skip ci]'
-          file_pattern: lighthouse-badges/*.json
-
       - name: Upload Lighthouse report
         if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v7
@@ -83,6 +76,13 @@ jobs:
           name: lighthouse-report
           path: .lighthouseci/
           if-no-files-found: warn
+
+      - name: Commit Lighthouse badge
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'chore: update Lighthouse badge [skip ci]'
+          file_pattern: lighthouse-badges/*.json
 
       - name: Upload Playwright report
         if: ${{ success() && !env.ACT }}

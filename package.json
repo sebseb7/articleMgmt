@@ -12,7 +12,7 @@
     "server:test": "node server/index.js",
     "web": "vite",
     "web:test": "vite --port 4993",
-    "build": "vite build && node server/prerender-index.js",
+    "build": "vite build && vite build --config vite.ssr.config.js && node server/prerender-index.js",
     "preview": "vite preview",
     "user": "node server/scripts/user.js",
     "seed": "node server/scripts/seed.js",
@@ -44,6 +44,7 @@
     "sharp": "^0.35.1"
   },
   "devDependencies": {
+    "@emotion/server": "^11.11.0",
     "@playwright/test": "^1.61.0",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^10.0.3",

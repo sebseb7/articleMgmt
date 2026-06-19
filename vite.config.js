@@ -1,14 +1,33 @@
+import fs from 'fs';
+import path from 'path';
+import { pathToFileURL } from 'url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { injectLoginShell } from './server/loginShell.js';
 
 const nodeModules = /node_modules/;
+const bundledLoginShell = path.resolve('dist/.ssr/loginShell.js');
+
+async function loadInjectLoginShell(ctx) {
+  if (fs.existsSync(bundledLoginShell)) {
+    const mod = await import(pathToFileURL(bundledLoginShell).href);
+    return mod.injectLoginShell;
+  }
+  if (ctx.server) {
+    const mod = await ctx.server.ssrLoadModule('/server/loginShell.js');
+    return mod.injectLoginShell;
+  }
+  return null;
+}
 
 function loginPrerenderPlugin() {
   return {
     name: 'login-prerender',
-    transformIndexHtml(html) {
-      return injectLoginShell(html);
+    transformIndexHtml: {
+      order: 'post',
+      async handler(html, ctx) {
+        const injectLoginShell = await loadInjectLoginShell(ctx);
+        return injectLoginShell ? injectLoginShell(html) : html;
+      },
     },
   };
 }

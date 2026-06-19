@@ -1,15 +1,18 @@
 import React, { Component, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
+import { CacheProvider } from '@emotion/react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, CircularProgress } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 import { SnackbarProvider } from 'notistack';
+import createEmotionCache from './emotionCache.js';
 import { theme } from './theme.js';
 import ModalScrollLock from './ModalScrollLock.jsx';
 import { api } from './api.js';
 import Login from './Login.jsx';
 
 const App = lazy(() => import('./App.jsx'));
+const clientCache = createEmotionCache();
 
 class Root extends Component {
   state = {
@@ -39,39 +42,51 @@ class Root extends Component {
   render() {
     const { user } = this.state;
 
-    if (user) {
-      return (
-        <Suspense
-          fallback={(
-            <Box
-              component="main"
-              sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <CircularProgress />
-            </Box>
-          )}
-        >
-          <App user={user} onLogout={this.handleLogout} />
-        </Suspense>
-      );
+    if (!user) {
+      return <Login onLogin={this.handleLogin} />;
     }
 
-    return <Login onLogin={this.handleLogin} />;
+    return (
+      <>
+        <ModalScrollLock />
+        <SnackbarProvider
+          autoHideDuration={4000}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          maxSnack={3}
+        >
+          <Suspense
+            fallback={(
+              <Box
+                component="main"
+                sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <CircularProgress />
+              </Box>
+            )}
+          >
+            <App user={user} onLogout={this.handleLogout} />
+          </Suspense>
+        </SnackbarProvider>
+      </>
+    );
   }
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+const rootEl = document.getElementById('root');
+const useHydrate = Boolean(rootEl?.querySelector('[data-prerender="login"]'));
+
+const app = (
+  <CacheProvider value={clientCache}>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ModalScrollLock />
-      <SnackbarProvider
-        autoHideDuration={4000}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        maxSnack={3}
-      >
-        <Root />
-      </SnackbarProvider>
+      <Root />
     </ThemeProvider>
-  </React.StrictMode>
+  </CacheProvider>
+);
+
+const mount = useHydrate ? ReactDOM.hydrateRoot : ReactDOM.createRoot;
+mount(rootEl).render(
+  <React.StrictMode>
+    {app}
+  </React.StrictMode>,
 );

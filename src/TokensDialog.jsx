@@ -153,7 +153,7 @@ export default class TokensDialog extends Component {
           Install on Android to connect a USB Zebra printer and run it as a printer agent.
           Create a token with the <strong>App</strong> scope and scan the token QR code in the app to pair.
         </Typography>
-        <Box sx={{ mt: 1.5, lineHeight: 0 }} data-visual-test-exclude>
+        <Box sx={{ mt: 1.5, lineHeight: 0 }}>
           <Box
             component="a"
             href={ZEBRA_LABEL_RELEASES_URL}
@@ -164,6 +164,7 @@ export default class TokensDialog extends Component {
               component="img"
               src={ZEBRA_LABEL_RELEASE_BADGE}
               alt="Latest ZebraLabel release"
+              data-visual-test-exclude
               sx={{ height: 22, display: 'block' }}
             />
           </Box>

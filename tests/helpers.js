@@ -35,8 +35,10 @@ export async function openMissingListDialog(page) {
 
 export async function stabilizePage(page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.addStyleTag({
-    content: `
+  await page.addInitScript(() => {
+    const style = document.createElement('style');
+    style.setAttribute('data-playwright-stabilize', '');
+    style.textContent = `
       *, *::before, *::after {
         transition-duration: 0s !important;
         animation-duration: 0s !important;
@@ -44,9 +46,19 @@ export async function stabilizePage(page) {
         -moz-osx-font-smoothing: unset !important;
       }
       [data-visual-test-exclude] {
-        visibility: hidden !important;
+        display: none !important;
       }
-    `,
+    `;
+    const attach = () => {
+      if (!document.querySelector('style[data-playwright-stabilize]')) {
+        (document.head || document.documentElement).appendChild(style);
+      }
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attach);
+    } else {
+      attach();
+    }
   });
 }
 

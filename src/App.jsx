@@ -13,6 +13,7 @@ import {
   DEFAULT_PAGE_SIZE, effectiveSearchQuery, categoryFilterKey, categoryFiltersEqual, mediaQueryString,
   isBarcodeLike,
 } from './articleTableUtils.js';
+import { connectPrinterEvents } from './printerEvents.js';
 
 class App extends Component {
   state = {
@@ -44,6 +45,7 @@ class App extends Component {
     changelogPageSize: DEFAULT_PAGE_SIZE,
     changelogLoading: false,
     importProgress: null,
+    printers: [],
   };
 
   searchRef = createRef();
@@ -58,6 +60,9 @@ class App extends Component {
     this.loadCategories();
     this.load(this.state.page, this.state.pageSize, this.state.search);
     this.setupKeydownListener();
+    this.disconnectPrinterEvents = connectPrinterEvents({
+      onPrinters: (printers) => this.setState({ printers }),
+    });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -123,6 +128,7 @@ class App extends Component {
   }
 
   componentWillUnmount() {
+    this.disconnectPrinterEvents?.();
     this.mediaQueryList?.removeEventListener('change', this.handleMediaChange);
     clearTimeout(this.searchDebounceTimer);
     this.teardownKeydownListener();
@@ -669,7 +675,7 @@ class App extends Component {
       dialog, missingBarcodeDialog, categoriesOpen, tokensOpen, missingListWantsToOpen, missingListOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
       changelogEntries, changelogTotal, changelogPage, changelogPageSize, changelogLoading,
-      importProgress,
+      importProgress, printers,
     } = this.state;
 
     return (
@@ -699,6 +705,7 @@ class App extends Component {
           onImportFile={this.handleImportFile}
           onExport={this.handleExport}
           onFlushDb={this.handleFlushDb}
+          printers={printers}
           articles={articles}
           total={total}
           page={page}

@@ -17,7 +17,7 @@ export default class AppShell extends PureComponent {
       onAddCategoryFilter, onRemoveCategoryFilter,
       onOpenCategories, onNewArticle,
       onImportFile, onExport, onFlushDb, onNavigate, onOpenTokens,
-      missingListOpen,
+      missingListOpen, printers,
       articles, total, page, pageSize, loading, search,
       barcodeCapture, barcodeCaptureBuffer,
       onStartBarcodeCapture, onEditArticle, onDeleteArticle,
@@ -41,6 +41,7 @@ export default class AppShell extends PureComponent {
           onExport={onExport}
           onFlushDb={onFlushDb}
           onLogout={onLogout}
+          printers={printers}
         />
         <Container
           component="main"

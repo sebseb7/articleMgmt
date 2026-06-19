@@ -119,20 +119,52 @@ curl -H "Authorization: Bearer amt_…" \
 }
 ```
 
-#### GET `/api/v1/printer/events` — SSE subscription
+#### GET `/api/v1/printer/events` — SSE subscription (printer status)
 
-Long-lived stream of printer presence and print job updates.
+**Keep this connection open** for live printer presence. The web UI header printer icon (grey = none, green = at least one agent connected) uses the same stream.
+
+| Auth | How to connect |
+|------|----------------|
+| Browser session | `EventSource('/api/v1/printer/events')` — sends `auth_token` cookie automatically (same origin) |
+| `write` API token | `Authorization: Bearer` on `curl -N`, **or** `?access_token=amt_…` for `EventSource` |
+
+On connect you receive a `printers` event with the current list. Stay subscribed; `printer_online` / `printer_offline` update presence without polling. `GET /api/v1/printer/printers` is a one-shot snapshot if you only need a quick check.
+
+**Browser (logged-in UI):**
+
+```javascript
+const es = new EventSource('/api/v1/printer/events');
+
+es.addEventListener('printers', (e) => {
+  const { printers } = JSON.parse(e.data);
+  const connected = printers.length > 0;
+});
+
+es.addEventListener('printer_online', (e) => {
+  const { printerId, name } = JSON.parse(e.data);
+});
+
+es.addEventListener('printer_offline', (e) => {
+  const { printerId } = JSON.parse(e.data);
+});
+```
+
+**API client (`write` token):**
+
+```javascript
+const es = new EventSource(
+  `/api/v1/printer/events?access_token=${encodeURIComponent(token)}`,
+);
+```
+
+Or with `curl`:
 
 ```bash
 curl -N -H "Authorization: Bearer amt_…" \
   https://articles.example.com/api/v1/printer/events
 ```
 
-Or with `EventSource` and query token:
-
-```javascript
-const es = new EventSource(`/api/v1/printer/events?access_token=${encodeURIComponent(token)}`);
-```
+Reconnect after `onerror` (the server and network may drop idle streams; heartbeats are sent as SSE comments every 25s).
 
 **Server → client events**
 

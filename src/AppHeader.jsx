@@ -15,6 +15,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import NavigationIcon from '@mui/icons-material/Menu';
 import KeyIcon from '@mui/icons-material/Key';
 import CheckIcon from '@mui/icons-material/Check';
+import PrintIcon from '@mui/icons-material/Print';
 
 const SUMUP_CATALOG_URL = 'https://me.sumup.com/catalog';
 
@@ -67,6 +68,26 @@ export default class AppHeader extends PureComponent {
       )}
     </MenuItem>
   );
+
+  renderPrinterStatus = () => {
+    const { printers } = this.props;
+    const connected = printers.length > 0;
+    const title = connected
+      ? `Printer connected: ${printers.map((p) => p.name).join(', ')}`
+      : 'No printer connected';
+
+    return (
+      <Tooltip title={title}>
+        <PrintIcon
+          aria-label={title}
+          sx={{
+            fontSize: { xs: 24, sm: 26 },
+            color: connected ? 'success.light' : 'grey.500',
+          }}
+        />
+      </Tooltip>
+    );
+  };
 
   renderMenus = (isIcon) => {
     const { view, missingListOpen } = this.props;
@@ -186,6 +207,7 @@ export default class AppHeader extends PureComponent {
                     <StorefrontIcon />
                   </IconButton>
                 </Tooltip>
+                {this.renderPrinterStatus()}
                 {this.renderMenus(true)}
                 <Tooltip title={`Logout (${user.username})`}>
                   <IconButton color="inherit" onClick={onLogout}>
@@ -205,6 +227,7 @@ export default class AppHeader extends PureComponent {
                 >
                   SumUp
                 </Button>
+                {this.renderPrinterStatus()}
                 {this.renderMenus(false)}
                 <Typography variant="body2" sx={{ opacity: 0.9, mx: 0.5 }}>
                   {user.username}

@@ -8,8 +8,13 @@ on:
 jobs:
   visual:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       ACT: '' # set by nektos/act when running locally
+      DB_PATH: data/visual-test.db
+      PORT: '3993'
+      AUTH_SECRET: visual-test-secret
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -51,6 +56,33 @@ jobs:
         run: npm run test:visual
         env:
           CI: true
+
+      - name: Install Chrome for Lighthouse
+        run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
+
+      - name: Run Lighthouse
+        run: npm run test:lighthouse
+        env:
+          CI: true
+
+      - name: Generate Lighthouse badge
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}
+        run: npm run lighthouse:badge
+
+      - name: Commit Lighthouse badge
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: update Lighthouse badge [skip ci]'
+          file_pattern: lighthouse-badges/*.json
+
+      - name: Upload Lighthouse report
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          if-no-files-found: warn
 
       - name: Upload Playwright report
         if: ${{ success() && !env.ACT }}

@@ -19,7 +19,9 @@
     "seed:fresh": "node server/scripts/seed.js --fresh",
     "webhook": "node server/scripts/deploy-webhook.js",
     "test:visual": "playwright test",
-    "test:visual:update": "playwright test --update-snapshots"
+    "test:visual:update": "playwright test --update-snapshots",
+    "test:lighthouse": "lhci autorun",
+    "lighthouse:badge": "node scripts/lighthouse-badge.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -45,6 +47,7 @@
   },
   "devDependencies": {
     "@emotion/server": "^11.11.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.61.0",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^10.0.3",

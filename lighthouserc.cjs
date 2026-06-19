@@ -3,8 +3,8 @@ module.exports = {
   ci: {
     collect: {
       startServerCommand: 'npm run start:lighthouse',
-      startServerReadyPattern: 'Local:',
-      startServerReadyTimeout: 300_000,
+      startServerReadyPattern: 'LHCI_SERVER_READY',
+      startServerReadyTimeout: 120_000,
       url: ['http://localhost:4993/'],
       numberOfRuns: 1,
       settings: {

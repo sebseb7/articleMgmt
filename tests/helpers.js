@@ -9,8 +9,14 @@ export async function openMissingBarcodeDialog(page, barcode) {
   await page.getByRole('heading', { name: /Barcode not found|Barcode on missing list/ }).waitFor();
 }
 
+export async function openNavigateMenu(page) {
+  await page.getByRole('button', { name: 'Navigate' }).click();
+  await page.getByRole('menu').waitFor();
+}
+
 export async function openMissingListDialog(page) {
-  await page.getByRole('button', { name: 'Missing barcodes' }).click();
+  await openNavigateMenu(page);
+  await page.getByRole('menuitem', { name: 'Missing barcodes' }).click();
   await page.getByRole('heading', { name: 'Missing barcodes' }).waitFor();
   await page.getByRole('table').waitFor();
   await page.getByText('2342000099991').waitFor();

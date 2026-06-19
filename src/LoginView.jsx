@@ -29,6 +29,7 @@ export default class LoginView extends Component {
       onSubmit,
       onUsernameChange,
       onPasswordChange,
+      usernameInputRef,
     } = this.props;
 
     return (
@@ -67,16 +68,21 @@ export default class LoginView extends Component {
             </Alert>
           ) : null}
           <TextField
+            id="login-username"
             label="Username"
             fullWidth
-            autoFocus
+            inputRef={usernameInputRef}
             value={username}
             disabled={loading}
             onChange={onUsernameChange}
             sx={{ mb: 2 }}
-            slotProps={withNoAutofill({ inputLabel: { shrink: true } })}
+            slotProps={withNoAutofill({
+              inputLabel: { shrink: true, htmlFor: 'login-username' },
+              htmlInput: { id: 'login-username' },
+            })}
           />
           <TextField
+            id="login-password"
             label="Password"
             type="password"
             fullWidth
@@ -84,7 +90,10 @@ export default class LoginView extends Component {
             disabled={loading}
             onChange={onPasswordChange}
             sx={{ mb: 3 }}
-            slotProps={withNoAutofill()}
+            slotProps={withNoAutofill({
+              inputLabel: { htmlFor: 'login-password' },
+              htmlInput: { id: 'login-password' },
+            })}
           />
           <Button
             type="submit"

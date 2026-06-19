@@ -1,23 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { pathToFileURL } from 'url';
-import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import { createServer, defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nodeModules = /node_modules/;
-const bundledLoginShell = path.resolve('dist/.ssr/loginShell.js');
-
-async function loadInjectLoginShell(ctx) {
-  if (fs.existsSync(bundledLoginShell)) {
-    const mod = await import(pathToFileURL(bundledLoginShell).href);
-    return mod.injectLoginShell;
-  }
-  if (ctx.server) {
-    const mod = await ctx.server.ssrLoadModule('/server/loginShell.js');
-    return mod.injectLoginShell;
-  }
-  return null;
-}
 
 function loginPrerenderPlugin() {
   return {
@@ -25,15 +13,37 @@ function loginPrerenderPlugin() {
     transformIndexHtml: {
       order: 'post',
       async handler(html, ctx) {
-        const injectLoginShell = await loadInjectLoginShell(ctx);
-        return injectLoginShell ? injectLoginShell(html) : html;
+        if (!ctx.server) return html;
+        const { injectLoginShell } = await ctx.server.ssrLoadModule('/server/loginShell.js');
+        return injectLoginShell(html);
       },
+    },
+    async closeBundle() {
+      const indexPath = path.resolve(__dirname, 'dist/index.html');
+      if (!fs.existsSync(indexPath)) return;
+
+      const server = await createServer({
+        configFile: path.resolve(__dirname, 'vite.config.js'),
+        server: { middlewareMode: true },
+        appType: 'custom',
+      });
+
+      try {
+        const { injectLoginShell } = await server.ssrLoadModule('/server/loginShell.js');
+        const html = fs.readFileSync(indexPath, 'utf8');
+        fs.writeFileSync(indexPath, injectLoginShell(html));
+      } finally {
+        await server.close();
+      }
     },
   };
 }
 
 export default defineConfig({
   plugins: [react(), loginPrerenderPlugin()],
+  ssr: {
+    noExternal: ['@mui/material', '@mui/icons-material', '@mui/system', '@mui/utils', '@emotion/react', '@emotion/styled', '@emotion/cache', '@emotion/server'],
+  },
   build: {
     chunkSizeWarningLimit: 700,
     rolldownOptions: {

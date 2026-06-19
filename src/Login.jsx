@@ -1,14 +1,20 @@
-import { Component } from 'react';
+import { Component, createRef } from 'react';
 import { api } from './api.js';
 import LoginView from './LoginView.jsx';
 
 export default class Login extends Component {
+  usernameRef = createRef();
+
   state = {
     username: '',
     password: '',
     error: '',
     loading: false,
   };
+
+  componentDidMount() {
+    this.usernameRef.current?.focus({ preventScroll: true });
+  }
 
   handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,6 +44,7 @@ export default class Login extends Component {
         password={password}
         error={error}
         loading={loading}
+        usernameInputRef={this.usernameRef}
         onSubmit={this.handleSubmit}
         onUsernameChange={(e) => this.setState({ username: e.target.value })}
         onPasswordChange={(e) => this.setState({ password: e.target.value })}

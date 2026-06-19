@@ -1,56 +1,40 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import createCache from '@emotion/cache';
 import createEmotionServer from '@emotion/server/create-instance';
-import { CacheProvider } from '@emotion/react';
-import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider } from '@mui/material/styles';
-import LoginView from '../src/LoginView.jsx';
-import { theme } from '../src/theme.js';
+import createEmotionCache from '../src/emotionCache.js';
+import AppProviders from '../src/AppProviders.jsx';
+import Root from '../src/Root.jsx';
 
 const noop = () => {};
 
-function renderLoginMarkup() {
-  const cache = createCache({ key: 'mui', prepend: true });
+export function renderLoginPrerender() {
+  const cache = createEmotionCache();
   const { extractCriticalToChunks, constructStyleTagsFromChunks } = createEmotionServer(cache);
 
   const loginTree = React.createElement(
-    CacheProvider,
-    { value: cache },
-    React.createElement(
-      ThemeProvider,
-      { theme },
-      React.createElement(CssBaseline),
-      React.createElement(LoginView, {
-        username: '',
-        password: '',
-        error: '',
-        loading: false,
-        onSubmit: noop,
-        onUsernameChange: noop,
-        onPasswordChange: noop,
-      }),
-    ),
+    AppProviders,
+    { cache },
+    React.createElement(Root),
   );
 
   const html = renderToString(loginTree);
-  const chunks = extractCriticalToChunks(html);
-  const styles = constructStyleTagsFromChunks(chunks);
+  const emotionChunks = extractCriticalToChunks(html);
+  const styles = constructStyleTagsFromChunks(emotionChunks);
 
   return { html, styles };
 }
 
 /** Inject MUI SSR login into index.html for first paint. */
-export function injectLoginShell(html) {
-  if (html.includes('data-prerender="login"')) {
-    return html;
+export function injectLoginShell(documentHtml) {
+  if (documentHtml.includes('data-prerender="login"')) {
+    return documentHtml;
   }
 
-  const { html: loginHtml, styles } = renderLoginMarkup();
+  const { html: loginHtml, styles } = renderLoginPrerender();
 
-  const withStyles = html.includes('data-emotion="mui')
-    ? html
-    : html.replace('</head>', `${styles}\n</head>`);
+  const withStyles = documentHtml.includes('data-emotion="mui')
+    ? documentHtml
+    : documentHtml.replace('</head>', `${styles}\n</head>`);
 
   return withStyles.replace(
     '<div id="root"></div>',

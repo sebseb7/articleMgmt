@@ -83,8 +83,8 @@ jobs:
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: 'chore: update Lighthouse badge [skip ci]'
-          file_pattern: lighthouse-badges/*.json
+          commit_message: 'chore: update Lighthouse badge and screenshot [skip ci]'
+          file_pattern: lighthouse-badges/**
 
       - name: Upload Playwright report
         if: ${{ success() && !env.ACT }}

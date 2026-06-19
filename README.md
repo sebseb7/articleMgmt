@@ -8,6 +8,8 @@
 [![Lighthouse best practices](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/best-practices.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 [![Lighthouse SEO](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/seo.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 
+![Lighthouse page capture](lighthouse-badges/screenshot.webp)
+
 Import, manage, and re-export SumUp item CSVs. Vite + React + MUI frontend, Express + better-sqlite3 backend.
 
 ## Companion app: [ZebraLabel](https://github.com/sebseb7/ZebraLabel)

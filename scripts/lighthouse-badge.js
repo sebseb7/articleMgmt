@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
@@ -124,6 +125,30 @@ export function writeLighthouseBadges(run) {
   }
 }
 
+function lighthouseScreenshotDataUrl(report) {
+  return (
+    report.fullPageScreenshot?.screenshot?.data
+    ?? report.audits['final-screenshot']?.details?.data
+    ?? null
+  );
+}
+
+export async function writeLighthouseScreenshot(report) {
+  const dataUrl = lighthouseScreenshotDataUrl(report);
+  if (!dataUrl) {
+    throw new Error('No Lighthouse screenshot found in report');
+  }
+
+  const match = /^data:image\/[^;]+;base64,(.+)$/.exec(dataUrl);
+  if (!match) {
+    throw new Error('Lighthouse screenshot is not a base64 image data URL');
+  }
+
+  mkdirSync(badgesDir, { recursive: true });
+  const outPath = resolve(badgesDir, 'screenshot.webp');
+  await sharp(Buffer.from(match[1], 'base64')).webp({ quality: 85 }).toFile(outPath);
+}
+
 const writeBadges = process.argv.includes('--write-badges');
 const reportOnly = process.argv.includes('--report') || !writeBadges;
 
@@ -135,4 +160,5 @@ if (reportOnly) {
 
 if (writeBadges) {
   writeLighthouseBadges(run);
+  await writeLighthouseScreenshot(report);
 }

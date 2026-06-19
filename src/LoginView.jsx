@@ -91,7 +91,7 @@ export default class LoginView extends Component {
             onChange={onPasswordChange}
             sx={{ mb: 3 }}
             slotProps={withNoAutofill({
-              inputLabel: { htmlFor: 'login-password' },
+              inputLabel: { shrink: true, htmlFor: 'login-password' },
               htmlInput: { id: 'login-password' },
             })}
           />

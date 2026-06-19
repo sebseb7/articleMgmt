@@ -60,6 +60,18 @@ function send(res, status, body) {
   res.end(body);
 }
 
+function parsePayload(rawBody, contentType) {
+  const body = rawBody.toString('utf8');
+  if (contentType?.includes('application/x-www-form-urlencoded')) {
+    const payload = new URLSearchParams(body).get('payload');
+    if (!payload) {
+      throw new Error('missing payload field');
+    }
+    return JSON.parse(payload);
+  }
+  return JSON.parse(body);
+}
+
 const server = http.createServer((req, res) => {
   if (req.method !== 'POST') {
     send(res, 405, 'Method not allowed');
@@ -91,9 +103,10 @@ const server = http.createServer((req, res) => {
 
     let payload;
     try {
-      payload = JSON.parse(rawBody.toString('utf8'));
-    } catch {
-      send(res, 400, 'Invalid JSON');
+      payload = parsePayload(rawBody, req.headers['content-type']);
+    } catch (err) {
+      console.error('[webhook] failed to parse payload:', err.message);
+      send(res, 400, 'Invalid payload');
       return;
     }
 

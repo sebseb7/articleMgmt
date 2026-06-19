@@ -94,7 +94,7 @@ npm run webhook
 # or: pm2 start server/scripts/deploy-webhook.js --name sumup-webhook
 ```
 
-In GitHub → **Settings → Webhooks**, add payload URL `https://articles.example.com/deploy/` (content type: `application/json`, secret: your `GITHUB_WEBHOOK_SECRET`, events: **Just the push event**).
+In GitHub → **Settings → Webhooks**, add payload URL `https://articles.example.com/deploy/` (content type: `application/json` or `application/x-www-form-urlencoded`, secret: your `GITHUB_WEBHOOK_SECRET`, events: **Just the push event**).
 
 Override the deploy shell with `DEPLOY_COMMAND` if needed.
 

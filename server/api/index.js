@@ -13,6 +13,7 @@ import barcodesLookup from './barcodes/lookup.js';
 import missingList from './missing/list.js';
 import missingUpsert from './missing/upsert.js';
 import missingDelete from './missing/delete.js';
+import missingLookupProduct from './missing/lookup-product.js';
 import categoriesList from './categories/list.js';
 import categoriesCreate from './categories/create.js';
 import categoriesUpdate from './categories/update.js';
@@ -47,6 +48,7 @@ const routes = [
   missingList,
   missingUpsert,
   missingDelete,
+  missingLookupProduct,
   categoriesList,
   categoriesCreate,
   categoriesUpdate,

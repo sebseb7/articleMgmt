@@ -84,6 +84,9 @@ export const api = {
       ...credentials,
     }).then(json),
 
+  lookupMissingProductName: (barcode) =>
+    fetch(`/api/missing/${encodeURIComponent(barcode)}/product-name`, credentials).then(json),
+
   listCategories: () => fetch('/api/categories', credentials).then(json),
 
   createCategory: (name) =>

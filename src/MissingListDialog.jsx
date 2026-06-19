@@ -2,7 +2,7 @@ import { Component, createRef } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
-  Box, Typography,
+  Box, Typography, CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/EditOutlined';
@@ -50,9 +50,11 @@ export default class MissingListDialog extends Component {
     error: '',
     loading: false,
     forceBarcodeLabelShrink: true,
+    productNames: {},
   };
 
   loadSeq = 0;
+  lookupSeq = 0;
 
   componentDidUpdate(prevProps) {
     if (this.props.wantsToOpen && !prevProps.wantsToOpen) {
@@ -74,11 +76,12 @@ export default class MissingListDialog extends Component {
       deletingBarcode: null,
       loading: true,
       forceBarcodeLabelShrink: true,
+      productNames: {},
     });
     try {
       const entries = await api.listMissingBarcodes();
       if (seq !== this.loadSeq || !this.props.wantsToOpen) return;
-      this.setState({ entries, loading: false });
+      this.setState({ entries, loading: false }, () => this.lookupProductNames(entries));
       this.props.onOpen();
     } catch (e) {
       if (seq !== this.loadSeq || !this.props.wantsToOpen) return;
@@ -102,10 +105,92 @@ export default class MissingListDialog extends Component {
   reload = async () => {
     try {
       const entries = await api.listMissingBarcodes();
-      this.setState({ entries, error: '' });
+      this.setState({ entries, error: '' }, () => this.lookupProductNames(entries));
     } catch (e) {
       this.setState({ error: e.message });
     }
+  };
+
+  lookupProductNames = (entries) => {
+    const withoutNote = entries.filter((entry) => !entry.note?.trim());
+    if (!withoutNote.length) return;
+
+    const seq = ++this.lookupSeq;
+    const pending = Object.fromEntries(
+      withoutNote.map((entry) => [entry.barcode, { loading: true, name: null, error: '' }]),
+    );
+    this.setState((prev) => ({
+      productNames: { ...prev.productNames, ...pending },
+    }));
+
+    for (const entry of withoutNote) {
+      api.lookupMissingProductName(entry.barcode)
+        .then(({ productName }) => {
+          if (seq !== this.lookupSeq) return;
+          this.setState((prev) => ({
+            productNames: {
+              ...prev.productNames,
+              [entry.barcode]: { loading: false, name: productName, error: '' },
+            },
+          }));
+        })
+        .catch((e) => {
+          if (seq !== this.lookupSeq) return;
+          this.setState((prev) => ({
+            productNames: {
+              ...prev.productNames,
+              [entry.barcode]: { loading: false, name: null, error: e.message },
+            },
+          }));
+        });
+    }
+  };
+
+  renderNoteCell = (entry) => {
+    const { editingBarcode, editNote, productNames } = this.state;
+
+    if (editingBarcode === entry.barcode) {
+      return (
+        <TextField
+          size="small"
+          variant="standard"
+          fullWidth
+          value={editNote}
+          onChange={(e) => this.setState({ editNote: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') this.handleSaveEdit();
+            if (e.key === 'Escape') this.cancelEdit();
+          }}
+          autoFocus
+          placeholder="Note (optional)"
+          sx={inlineEditFieldSx}
+          slotProps={withNoAutofill()}
+        />
+      );
+    }
+
+    if (entry.note) {
+      return entry.note;
+    }
+
+    const lookup = productNames[entry.barcode];
+    if (lookup?.loading) {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+          <CircularProgress size={14} />
+          <Typography variant="body2" color="text.secondary">Looking up product…</Typography>
+        </Box>
+      );
+    }
+    if (lookup?.name) {
+      return (
+        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+          {lookup.name}
+        </Typography>
+      );
+    }
+
+    return <Typography component="span" color="text.secondary">—</Typography>;
   };
 
   findEntry = (barcode) => {
@@ -264,7 +349,7 @@ export default class MissingListDialog extends Component {
   render() {
     const { open, onClose } = this.props;
     const {
-      entries, newBarcode, newNote, editingBarcode, editNote, deletingBarcode, error, loading,
+      entries, newBarcode, newNote, editingBarcode, deletingBarcode, error, loading,
       forceBarcodeLabelShrink,
     } = this.state;
 
@@ -374,25 +459,7 @@ export default class MissingListDialog extends Component {
                   <TableRow key={entry.barcode} sx={dataRowSx}>
                     <TableCell sx={monoSx}>{entry.barcode}</TableCell>
                     <TableCell>
-                      {editingBarcode === entry.barcode ? (
-                        <TextField
-                          size="small"
-                          variant="standard"
-                          fullWidth
-                          value={editNote}
-                          onChange={(e) => this.setState({ editNote: e.target.value })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') this.handleSaveEdit();
-                            if (e.key === 'Escape') this.cancelEdit();
-                          }}
-                          autoFocus
-                          placeholder="Note (optional)"
-                          sx={inlineEditFieldSx}
-                          slotProps={withNoAutofill()}
-                        />
-                      ) : (
-                        entry.note || <Typography component="span" color="text.secondary">—</Typography>
-                      )}
+                      {this.renderNoteCell(entry)}
                     </TableCell>
                     <TableCell align="right">
                       {editingBarcode === entry.barcode ? (

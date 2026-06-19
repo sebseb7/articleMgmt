@@ -1,6 +1,34 @@
 const euroFormat = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+const priceInputFormat = new Intl.NumberFormat('de-DE', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+  useGrouping: false,
+});
 
 export const money = (v) => (v === null || v === undefined ? '—' : euroFormat.format(Number(v)));
+
+export const formatPriceInput = (v) => {
+  if (v === null || v === undefined || v === '') return '';
+  return priceInputFormat.format(Number(v));
+};
+
+export const parsePriceInput = (value) => {
+  if (value === null || value === '') return null;
+  let s = String(value).trim().replace(/\s/g, '');
+  if (!s) return null;
+  const hasComma = s.includes(',');
+  const hasDot = s.includes('.');
+  if (hasComma && hasDot) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma) {
+    s = s.replace(',', '.');
+  }
+  const num = Number(s);
+  if (!Number.isFinite(num)) {
+    throw new Error('Price must be a number.');
+  }
+  return num;
+};
 
 export const MIN_SEARCH_CHARS = 3;
 export const DEFAULT_PAGE_SIZE = 25;

@@ -79,7 +79,9 @@ export default class MissingBarcodeDialog extends Component {
         onClose={onClose}
         maxWidth="xs"
         fullWidth
-        TransitionProps={{ onEntered: this.focusNoteField }}
+        slotProps={{
+          transition: { onEntered: this.focusNoteField },
+        }}
       >
         <DialogTitle>
           {isExisting ? 'Barcode on missing list' : 'Barcode not found'}

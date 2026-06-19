@@ -108,7 +108,7 @@ class App extends Component {
       this.searchRef.current?.focus({ preventScroll: true });
     }
 
-    const { missingBarcodeDialog } = this.state;
+    const { missingBarcodeDialog, missingListOpen } = this.state;
     if (prevState.missingBarcodeDialog.open && !missingBarcodeDialog.open && !this.state.isMobile) {
       this.searchRef.current?.focus({ preventScroll: true });
     }
@@ -123,7 +123,8 @@ class App extends Component {
     }
 
     if (prevState.dialog.open !== dialog.open
-      || prevState.missingBarcodeDialog.open !== missingBarcodeDialog.open) {
+      || prevState.missingBarcodeDialog.open !== missingBarcodeDialog.open
+      || prevState.missingListOpen !== missingListOpen) {
       this.teardownKeydownListener();
       this.setupKeydownListener();
     }
@@ -410,7 +411,7 @@ class App extends Component {
   };
 
   setupKeydownListener = () => {
-    if (this.state.dialog.open || this.state.missingBarcodeDialog.open) return;
+    if (this.state.dialog.open || this.state.missingBarcodeDialog.open || this.state.missingListOpen) return;
     this.handleKeydown = (e) => {
       const target = e.target;
       const tag = target?.tagName?.toLowerCase();

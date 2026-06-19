@@ -10,7 +10,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { api } from './api.js';
-import { money } from './articleTableUtils.js';
+import { money, formatPriceInput, parsePriceInput } from './articleTableUtils.js';
 import { withNoAutofill } from './textFieldUtils.js';
 
 const monoSx = { fontFamily: 'monospace', wordBreak: 'break-all' };
@@ -43,10 +43,66 @@ const actionGlyphSx = {
   lineHeight: 1,
 };
 
+const priceInputPattern = /^[\d.,]*$/;
+
+class MissingPriceEditCell extends Component {
+  inputRef = createRef();
+
+  state = {
+    price: formatPriceInput(this.props.initialPrice),
+  };
+
+  componentDidMount() {
+    requestAnimationFrame(() => {
+      const el = this.inputRef.current;
+      if (!el) return;
+      el.focus();
+      if (el.value) el.select();
+    });
+  }
+
+  handleChange = (e) => {
+    const { value } = e.target;
+    if (value !== '' && !priceInputPattern.test(value)) return;
+    this.setState({ price: value });
+  };
+
+  handleKeyDown = (e) => {
+    if (e.key === 'Enter') this.props.onSave(this.state.price);
+    if (e.key === 'Escape') this.props.onCancel();
+  };
+
+  render() {
+    const { price } = this.state;
+    const { onSave, onCancel } = this.props;
+
+    return (
+      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+        <TextField
+          size="small"
+          variant="standard"
+          value={price}
+          onChange={this.handleChange}
+          onKeyDown={this.handleKeyDown}
+          placeholder="Price"
+          sx={{ ...inlineEditFieldSx, width: '7rem' }}
+          inputRef={this.inputRef}
+          slotProps={withNoAutofill()}
+        />
+        <IconButton size="small" onClick={() => onSave(price)} aria-label="Save price">
+          <CheckIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" onClick={onCancel} aria-label="Cancel price edit">
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    );
+  }
+}
+
 export default class MissingListDialog extends Component {
   barcodeInputRef = createRef();
   noteInputRef = createRef();
-  priceInputRef = createRef();
   noteEditInputRef = createRef();
 
   state = {
@@ -56,7 +112,6 @@ export default class MissingListDialog extends Component {
     editingBarcode: null,
     editNote: '',
     editingPriceBarcode: null,
-    editPrice: '',
     deletingBarcode: null,
     error: '',
     loading: false,
@@ -84,7 +139,6 @@ export default class MissingListDialog extends Component {
       editingBarcode: null,
       editNote: '',
       editingPriceBarcode: null,
-      editPrice: '',
       deletingBarcode: null,
       loading: true,
       forceBarcodeLabelShrink: true,
@@ -159,25 +213,15 @@ export default class MissingListDialog extends Component {
   };
 
   renderPriceCell = (entry) => {
-    const { editingPriceBarcode, editPrice } = this.state;
+    const { editingPriceBarcode } = this.state;
 
     if (editingPriceBarcode === entry.barcode) {
       return (
-        <TextField
-          size="small"
-          variant="standard"
-          type="number"
-          fullWidth
-          value={editPrice}
-          onChange={(e) => this.setState({ editPrice: e.target.value })}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') this.handleSavePriceEdit();
-            if (e.key === 'Escape') this.cancelPriceEdit();
-          }}
-          placeholder="Price"
-          sx={inlineEditFieldSx}
-          inputRef={this.priceInputRef}
-          slotProps={withNoAutofill()}
+        <MissingPriceEditCell
+          key={entry.barcode}
+          initialPrice={entry.price}
+          onSave={this.handleSavePriceEdit}
+          onCancel={this.cancelPriceEdit}
         />
       );
     }
@@ -189,6 +233,7 @@ export default class MissingListDialog extends Component {
         </Box>
         <IconButton
           size="small"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => this.startPriceEdit(entry)}
           aria-label="Edit price"
         >
@@ -264,20 +309,8 @@ export default class MissingListDialog extends Component {
     });
   };
 
-  focusPriceField = () => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = this.priceInputRef.current;
-        if (!el) return;
-        el.focus();
-        if (el.value) {
-          el.select();
-        }
-      });
-    });
-  };
-
   refocusBarcodeField = () => {
+    if (this.state.editingPriceBarcode || this.state.editingBarcode) return;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const el = this.barcodeInputRef.current;
@@ -367,7 +400,6 @@ export default class MissingListDialog extends Component {
       editingBarcode: entry.barcode,
       editNote: entry.note ?? '',
       editingPriceBarcode: null,
-      editPrice: '',
       deletingBarcode: null,
       error: '',
     }, this.focusNoteEditField);
@@ -376,30 +408,29 @@ export default class MissingListDialog extends Component {
   startPriceEdit = (entry) => {
     this.setState({
       editingPriceBarcode: entry.barcode,
-      editPrice: entry.price ?? '',
       editingBarcode: null,
       editNote: '',
       deletingBarcode: null,
       error: '',
-    }, this.focusPriceField);
+    });
   };
 
   cancelPriceEdit = () => {
-    this.setState({ editingPriceBarcode: null, editPrice: '' }, this.refocusBarcodeField);
+    this.setState({ editingPriceBarcode: null }, this.refocusBarcodeField);
   };
 
-  handleSavePriceEdit = async () => {
-    const { editingPriceBarcode, editPrice } = this.state;
+  handleSavePriceEdit = async (editPrice) => {
+    const { editingPriceBarcode } = this.state;
     this.setState({ error: '' });
     try {
-      const price = editPrice === '' ? null : editPrice;
+      const price = parsePriceInput(editPrice);
       await api.upsertMissingBarcode(editingPriceBarcode, undefined, price);
-      this.setState({ editingPriceBarcode: null, editPrice: '' });
+      this.setState({ editingPriceBarcode: null });
       await this.reload();
       this.refocusBarcodeField();
     } catch (e) {
       if (this.isCatalogBarcodeError(e)) {
-        this.setState({ editingPriceBarcode: null, editPrice: '' }, this.refocusBarcodeField);
+        this.setState({ editingPriceBarcode: null }, this.refocusBarcodeField);
         return;
       }
       this.setState({ error: e.message });
@@ -433,7 +464,6 @@ export default class MissingListDialog extends Component {
       editingBarcode: null,
       editNote: '',
       editingPriceBarcode: null,
-      editPrice: '',
       error: '',
     });
   };
@@ -470,8 +500,8 @@ export default class MissingListDialog extends Component {
         onClose={onClose}
         maxWidth="md"
         fullWidth
-        TransitionProps={{ onEntered: this.focusBarcodeField }}
         slotProps={{
+          transition: { onEntered: this.focusBarcodeField },
           paper: {
             sx: {
               display: 'flex',
@@ -567,32 +597,32 @@ export default class MissingListDialog extends Component {
                   </TableCell>
                 </TableRow>
               ) : (
-                entries.map((entry) => (
+                entries.map((entry) => {
+                  const isEditingPrice = editingPriceBarcode === entry.barcode;
+                  return (
                   <TableRow key={entry.barcode} sx={dataRowSx}>
                     <TableCell sx={monoSx}>{entry.barcode}</TableCell>
-                    <TableCell>
-                      {this.renderPriceCell(entry)}
-                    </TableCell>
-                    <TableCell>
-                      {this.renderNoteCell(entry)}
-                    </TableCell>
+                    {isEditingPrice ? (
+                      <TableCell colSpan={2}>
+                        {this.renderPriceCell(entry)}
+                      </TableCell>
+                    ) : (
+                      <>
+                        <TableCell>
+                          {this.renderPriceCell(entry)}
+                        </TableCell>
+                        <TableCell>
+                          {this.renderNoteCell(entry)}
+                        </TableCell>
+                      </>
+                    )}
                     <TableCell align="right">
-                      {editingBarcode === entry.barcode || editingPriceBarcode === entry.barcode ? (
+                      {editingBarcode === entry.barcode ? (
                         <>
-                          <IconButton
-                            size="small"
-                            onClick={editingPriceBarcode === entry.barcode
-                              ? this.handleSavePriceEdit
-                              : this.handleSaveEdit}
-                          >
+                          <IconButton size="small" onClick={this.handleSaveEdit}>
                             <CheckIcon fontSize="small" />
                           </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={editingPriceBarcode === entry.barcode
-                              ? this.cancelPriceEdit
-                              : this.cancelEdit}
-                          >
+                          <IconButton size="small" onClick={this.cancelEdit}>
                             <CloseIcon fontSize="small" />
                           </IconButton>
                         </>
@@ -617,7 +647,8 @@ export default class MissingListDialog extends Component {
                       )}
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>

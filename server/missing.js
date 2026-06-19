@@ -1,5 +1,6 @@
 import db from './db.js';
 import { lookupBarcode, normalizeBarcode } from './barcodes.js';
+import { normalizePrice } from './priceUtils.js';
 
 const getByBarcode = db.prepare(
   'SELECT barcode, note, price FROM missing WHERE barcode = ?',
@@ -14,13 +15,6 @@ const deleteByBarcode = db.prepare('DELETE FROM missing WHERE barcode = ?');
 const listAll = db.prepare(
   'SELECT barcode, note, price FROM missing ORDER BY barcode',
 );
-
-function normalizePrice(value) {
-  if (value === null || value === '') return null;
-  const num = Number(value);
-  if (!Number.isFinite(num)) throw new Error('Price must be a number.');
-  return num;
-}
 
 export function getMissingBarcode(barcode) {
   const value = normalizeBarcode(barcode);

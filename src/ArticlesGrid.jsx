@@ -197,8 +197,8 @@ class NameCellRenderer extends Component {
   render() {
     const { article } = this.props.data;
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-        <Typography fontWeight={600} noWrap>{article.item_name}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', overflow: 'hidden' }}>
+        <Typography fontWeight={600} noWrap sx={{ flex: 1, minWidth: 0 }}>{article.item_name}</Typography>
         {!hasUuid(article.item_uuid) && <NewBadge />}
       </Box>
     );
@@ -368,15 +368,16 @@ export default class ArticlesGrid extends PureComponent {
     {
       colId: 'item_name',
       headerName: 'Item name',
-      flex: 2,
-      minWidth: 160,
+      flex: 1,
+      minWidth: 280,
       cellRenderer: NameCellRenderer,
     },
     {
       colId: 'category',
       headerName: 'Category',
-      flex: 1,
-      minWidth: 110,
+      width: 110,
+      minWidth: 90,
+      maxWidth: 130,
       cellRenderer: CategoryCellRenderer,
     },
     {
@@ -384,6 +385,7 @@ export default class ArticlesGrid extends PureComponent {
       headerName: 'Tax',
       width: 84,
       minWidth: 84,
+      maxWidth: 84,
       cellStyle: (params) => articleCellStyle(params, { justifyContent: 'flex-end' }),
       headerClass: 'ag-right-aligned-header',
       valueGetter: (params) => params.data.article.tax_rate,
@@ -392,8 +394,9 @@ export default class ArticlesGrid extends PureComponent {
     {
       colId: 'price',
       headerName: 'Price / Variations',
-      flex: 1,
-      minWidth: 150,
+      width: 140,
+      minWidth: 120,
+      maxWidth: 160,
       cellRenderer: PriceCellRenderer,
       cellStyle: (params) => articleCellStyle(params, { justifyContent: 'flex-end' }),
       headerClass: 'ag-right-aligned-header',
@@ -401,8 +404,9 @@ export default class ArticlesGrid extends PureComponent {
     {
       colId: 'barcode',
       headerName: 'Barcode',
-      flex: 1.5,
-      minWidth: 170,
+      width: 150,
+      minWidth: 130,
+      maxWidth: 180,
       cellRenderer: BarcodeCellRenderer,
       cellStyle: (params) => articleCellStyle(params, {
         ...(barcodeCellUsesMonospace(params) ? { fontFamily: monoFontFamily } : {}),

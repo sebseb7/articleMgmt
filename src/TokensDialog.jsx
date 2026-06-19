@@ -7,9 +7,13 @@ import {
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
+import PrintIcon from '@mui/icons-material/Print';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from './api.js';
 import { withNoAutofill } from './textFieldUtils.js';
+
+const ZEBRA_LABEL_RELEASES_URL = 'https://github.com/sebseb7/ZebraLabel/releases/latest';
 
 const SCOPE_OPTIONS = [
   { id: 'read', label: 'Read — query price by barcode' },
@@ -112,6 +116,60 @@ export default class TokensDialog extends Component {
     this.setState({ qrOpen: false });
   };
 
+  renderCompanionAppCard = () => (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: 2,
+        p: 2,
+        mb: 2.5,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'rgba(13, 148, 136, 0.06)',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 48,
+          height: 48,
+          borderRadius: 2,
+          bgcolor: 'primary.main',
+          color: 'primary.contrastText',
+          flexShrink: 0,
+        }}
+      >
+        <PrintIcon />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          ZebraLabel companion app
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Install on Android to connect a USB Zebra printer and run it as a printer agent.
+          Create a token and scan the token QR code in the app to pair.
+        </Typography>
+      </Box>
+      <Button
+        variant="contained"
+        size="small"
+        component="a"
+        href={ZEBRA_LABEL_RELEASES_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        endIcon={<OpenInNewIcon />}
+        sx={{ flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'center' } }}
+      >
+        Download
+      </Button>
+    </Box>
+  );
+
   render() {
     const { open, onClose } = this.props;
     const {
@@ -125,8 +183,11 @@ export default class TokensDialog extends Component {
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Machine tokens for the price API and printer integration.
+            {' '}
             Pass as <code>Authorization: Bearer &lt;token&gt;</code>.
           </Typography>
+
+          {this.renderCompanionAppCard()}
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => this.setState({ error: '' })}>

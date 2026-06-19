@@ -70,13 +70,17 @@ export const api = {
 
   listMissingBarcodes: () => fetch('/api/missing', credentials).then(json),
 
-  upsertMissingBarcode: (barcode, note) =>
-    fetch('/api/missing', {
+  upsertMissingBarcode: (barcode, note, price) => {
+    const body = { barcode };
+    if (note !== undefined) body.note = note;
+    if (price !== undefined) body.price = price;
+    return fetch('/api/missing', {
       method: 'PUT',
       ...credentials,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ barcode, note }),
-    }).then(json),
+      body: JSON.stringify(body),
+    }).then(json);
+  },
 
   removeMissingBarcode: (barcode) =>
     fetch(`/api/missing/${encodeURIComponent(barcode)}`, {

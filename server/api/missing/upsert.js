@@ -5,8 +5,8 @@ import { upsertMissingBarcode } from '../../missing.js';
 export default function register(app) {
   app.put('/api/missing', requireAuth, (req, res) => {
     try {
-      const { barcode, note } = req.body || {};
-      const entry = upsertMissingBarcode(barcode, note);
+      const { barcode, note, price } = req.body || {};
+      const entry = upsertMissingBarcode(barcode, { note, price });
       if (!entry.unchanged) {
         logChange(req.user, 'missing_upsert', {
           entityType: 'missing',

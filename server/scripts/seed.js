@@ -125,13 +125,13 @@ function importDemoArticles() {
 
 function seedMissingBarcodes() {
   const upsert = db.prepare(`
-    INSERT INTO missing (barcode, note) VALUES (?, ?)
-    ON CONFLICT(barcode) DO UPDATE SET note = excluded.note
+    INSERT INTO missing (barcode, note, price) VALUES (?, ?, ?)
+    ON CONFLICT(barcode) DO UPDATE SET note = excluded.note, price = excluded.price
   `);
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM missing').run();
     for (const entry of DEMO_MISSING_BARCODES) {
-      upsert.run(entry.barcode, entry.note);
+      upsert.run(entry.barcode, entry.note, entry.price ?? null);
     }
   });
   tx();

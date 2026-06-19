@@ -2,16 +2,25 @@ import db from './db.js';
 import { lookupBarcode, normalizeBarcode } from './barcodes.js';
 
 const getByBarcode = db.prepare(
-  'SELECT barcode, note FROM missing WHERE barcode = ?',
+  'SELECT barcode, note, price FROM missing WHERE barcode = ?',
 );
 const upsertMissing = db.prepare(`
-  INSERT INTO missing (barcode, note) VALUES (?, ?)
-  ON CONFLICT(barcode) DO UPDATE SET note = excluded.note
+  INSERT INTO missing (barcode, note, price) VALUES (?, ?, ?)
+  ON CONFLICT(barcode) DO UPDATE SET
+    note = excluded.note,
+    price = excluded.price
 `);
 const deleteByBarcode = db.prepare('DELETE FROM missing WHERE barcode = ?');
 const listAll = db.prepare(
-  'SELECT barcode, note FROM missing ORDER BY barcode',
+  'SELECT barcode, note, price FROM missing ORDER BY barcode',
 );
+
+function normalizePrice(value) {
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) throw new Error('Price must be a number.');
+  return num;
+}
 
 export function getMissingBarcode(barcode) {
   const value = normalizeBarcode(barcode);
@@ -23,7 +32,7 @@ export function listMissingBarcodes() {
   return listAll.all();
 }
 
-export function upsertMissingBarcode(barcode, note) {
+export function upsertMissingBarcode(barcode, { note, price } = {}) {
   const value = normalizeBarcode(barcode);
   if (!value) throw new Error('Barcode is required.');
   const { article, variation } = lookupBarcode(value);
@@ -32,14 +41,21 @@ export function upsertMissingBarcode(barcode, note) {
     err.code = 'barcode_in_catalog';
     throw err;
   }
-  const trimmedNote = String(note ?? '').trim();
-  const nextNote = trimmedNote || null;
   const existing = getByBarcode.get(value);
-  if (existing && existing.note === nextNote) {
-    return { barcode: value, note: nextNote, unchanged: true };
+  let nextNote = existing?.note ?? null;
+  let nextPrice = existing?.price ?? null;
+  if (note !== undefined) {
+    const trimmedNote = String(note ?? '').trim();
+    nextNote = trimmedNote || null;
   }
-  upsertMissing.run(value, nextNote);
-  return { barcode: value, note: nextNote };
+  if (price !== undefined) {
+    nextPrice = normalizePrice(price);
+  }
+  if (existing && existing.note === nextNote && existing.price === nextPrice) {
+    return { barcode: value, note: nextNote, price: nextPrice, unchanged: true };
+  }
+  upsertMissing.run(value, nextNote, nextPrice);
+  return { barcode: value, note: nextNote, price: nextPrice };
 }
 
 export function deleteMissingBarcode(barcode) {

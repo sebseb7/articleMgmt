@@ -82,7 +82,8 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS missing (
     barcode TEXT NOT NULL PRIMARY KEY,
-    note    TEXT
+    note    TEXT,
+    price   REAL
   );
 
   CREATE TABLE IF NOT EXISTS tokens (
@@ -139,6 +140,10 @@ if (db.prepare('PRAGMA table_info(articles)').all().some((c) => c.name === 'seo_
 
 if (!db.prepare('PRAGMA table_info(articles)').all().some((c) => c.name === 'image_thumb_avif')) {
   db.exec('ALTER TABLE articles ADD COLUMN image_thumb_avif TEXT');
+}
+
+if (!db.prepare('PRAGMA table_info(missing)').all().some((c) => c.name === 'price')) {
+  db.exec('ALTER TABLE missing ADD COLUMN price REAL');
 }
 
 export default db;

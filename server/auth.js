@@ -1,12 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
-import { verifyApiToken } from './tokens.js';
+import { verifyApiToken, effectiveScopes } from './tokens.js';
 
 const JWT_SECRET = process.env.AUTH_SECRET || 'dev-only-change-me-in-production';
 const COOKIE_NAME = 'auth_token';
 const TOKEN_TTL = '7d';
-const SESSION_SCOPES = ['read', 'write', 'admin'];
+const SESSION_SCOPES = ['app', 'printer'];
 
 export { COOKIE_NAME };
 
@@ -123,10 +123,16 @@ export function requireAuth(req, res, next) {
   next();
 }
 
+export function authScopes(auth) {
+  if (!auth) return [];
+  if (auth.type === 'session') return SESSION_SCOPES;
+  return effectiveScopes(auth.scopes);
+}
+
 export function canUsePrinterClient(auth) {
   if (!auth) return false;
   if (auth.type === 'session') return true;
-  return auth.scopes.includes('write');
+  return authScopes(auth).includes('app');
 }
 
 export function requirePrinterClient(req, res, next) {
@@ -134,7 +140,7 @@ export function requirePrinterClient(req, res, next) {
     return res.status(401).json({ error: 'Authentication required.' });
   }
   if (!canUsePrinterClient(req.auth)) {
-    return res.status(403).json({ error: 'Missing required scope: write (or session login).' });
+    return res.status(403).json({ error: 'Missing required scope: app (or session login).' });
   }
   next();
 }
@@ -151,7 +157,7 @@ export function requireScope(...required) {
     if (!req.auth) {
       return res.status(401).json({ error: 'Authentication required.' });
     }
-    const missing = required.filter((scope) => !req.auth.scopes.includes(scope));
+    const missing = required.filter((scope) => !authScopes(req.auth).includes(scope));
     if (missing.length > 0) {
       return res.status(403).json({ error: `Missing required scope: ${missing.join(', ')}.` });
     }

@@ -4,7 +4,7 @@ import { deleteBarcodePrice } from '../../../barcodes.js';
 import { logChange } from '../../../changelog.js';
 
 export default function register(app) {
-  app.delete('/api/v1/price', requireAuth, requireScope('admin'), (req, res) => {
+  app.delete('/api/v1/price', requireAuth, requireScope('app'), (req, res) => {
     const barcode = normalizedBarcode(req.query.barcode ?? req.body?.barcode);
     if (!barcode) {
       return res.status(400).json({ error: 'Barcode is required.' });

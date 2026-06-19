@@ -14,12 +14,11 @@ import { api } from './api.js';
 import { withNoAutofill } from './textFieldUtils.js';
 
 const ZEBRA_LABEL_RELEASES_URL = 'https://github.com/sebseb7/ZebraLabel/releases/latest';
+const ZEBRA_LABEL_RELEASE_BADGE = 'https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sebseb7/ZebraLabel/releases/latest&query=$.tag_name&label=release&color=2ea443&logo=github';
 
 const SCOPE_OPTIONS = [
-  { id: 'read', label: 'Read — query price by barcode' },
-  { id: 'write', label: 'Write — update price, use printers' },
-  { id: 'admin', label: 'Admin — delete by barcode' },
-  { id: 'printer', label: 'Printer — printer agent' },
+  { id: 'app', label: 'App — price API and printer client (ZebraLabel companion)' },
+  { id: 'printer', label: 'Printer — register as printer agent only' },
 ];
 
 function apiBaseUrl() {
@@ -34,7 +33,7 @@ export default class TokensDialog extends Component {
   state = {
     tokens: [],
     name: '',
-    scopes: { read: true, write: false, admin: false },
+    scopes: { app: true, printer: false },
     createdToken: '',
     qrOpen: false,
     error: '',
@@ -46,7 +45,7 @@ export default class TokensDialog extends Component {
     if (this.props.open && !prevProps.open) {
       this.setState({
         name: '',
-        scopes: { read: true, write: false, admin: false },
+        scopes: { app: true, printer: false },
         createdToken: '',
         qrOpen: false,
         error: '',
@@ -79,7 +78,7 @@ export default class TokensDialog extends Component {
     this.setState({ creating: true, error: '' });
     try {
       const created = await api.createToken(name, selected);
-      this.setState({ createdToken: created.token, name: '', scopes: { read: true, write: false, admin: false } });
+      this.setState({ createdToken: created.token, name: '', scopes: { app: true, printer: false } });
       await this.load();
     } catch (e) {
       this.setState({ error: e.message });
@@ -152,8 +151,23 @@ export default class TokensDialog extends Component {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Install on Android to connect a USB Zebra printer and run it as a printer agent.
-          Create a token and scan the token QR code in the app to pair.
+          Create a token with the <strong>App</strong> scope and scan the token QR code in the app to pair.
         </Typography>
+        <Box sx={{ mt: 1.5, lineHeight: 0 }}>
+          <Box
+            component="a"
+            href={ZEBRA_LABEL_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Box
+              component="img"
+              src={ZEBRA_LABEL_RELEASE_BADGE}
+              alt="Latest ZebraLabel release"
+              sx={{ height: 22, display: 'block' }}
+            />
+          </Box>
+        </Box>
       </Box>
       <Button
         variant="contained"

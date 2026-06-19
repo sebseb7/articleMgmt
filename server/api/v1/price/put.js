@@ -4,7 +4,7 @@ import { upsertBarcodePrice } from '../../../barcodes.js';
 import { logChange } from '../../../changelog.js';
 
 export default function register(app) {
-  app.put('/api/v1/price', requireAuth, requireScope('write'), (req, res) => {
+  app.put('/api/v1/price', requireAuth, requireScope('app'), (req, res) => {
     const barcode = normalizedBarcode(req.body.barcode ?? req.query.barcode);
     if (!barcode) {
       return res.status(400).json({ error: 'Barcode is required.' });

@@ -1,4 +1,4 @@
-import { resolveAuth } from '../../../auth.js';
+import { resolveAuth, authScopes } from '../../../auth.js';
 import { connectAgent } from '../../../printer-hub.js';
 
 export default function register(app) {
@@ -7,7 +7,7 @@ export default function register(app) {
     if (!auth) {
       return res.status(401).json({ error: 'Authentication required.' });
     }
-    if (!auth.scopes.includes('printer')) {
+    if (!authScopes(auth).includes('printer')) {
       return res.status(403).json({ error: 'Missing required scope: printer.' });
     }
 

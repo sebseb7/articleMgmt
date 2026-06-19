@@ -83,7 +83,7 @@ export const VISUAL_TEST_TOKEN = {
   name: 'Visual test token',
   token: 'amt_visualRegressionTestToken12',
   tokenPrefix: 'amt_visualRe…',
-  scopes: ['read'],
+  scopes: ['app'],
 };
 
 /** Deterministic token API so created-token text and QR snapshots stay stable. */

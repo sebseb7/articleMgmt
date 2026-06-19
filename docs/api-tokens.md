@@ -39,20 +39,22 @@ Clients call `{url}/api/v1/…` and send `Authorization: Bearer {token}` (or `ac
 
 | Scope     | Role |
 |-----------|------|
-| `read`    | Price lookup only |
-| `write`   | Price create/update **and** printer client (list printers, print ZPL) |
-| `admin`   | Price delete by barcode |
-| `printer` | printer agent |
+| `app`     | Full client API — price lookup, create/update/delete by barcode, printer client (list printers, print ZPL). Used by the **ZebraLabel companion app** and other integrations. |
+| `printer` | Printer agent only — register via SSE and receive ZPL print jobs |
 
-Assign only the scopes each client needs. A physical printer daemon uses `printer`; an app that prints labels uses `write` (or a browser session).
+A token may include both scopes (companion app on a device that is also the printer agent). Browser sessions have both capabilities without a token.
+
+Legacy tokens with `read`, `write`, or `admin` scopes are still accepted and treated as `app`.
 
 ---
 
-## `write` scope — price API & printer client
+## `app` scope — price API & printer client
 
 ### Price endpoints
 
 Base path: `/api/v1/price`
+
+All price endpoints require the **`app`** scope.
 
 #### GET `?barcode=<barcode>` — look up price
 
@@ -89,9 +91,7 @@ curl -X PUT -H "Authorization: Bearer amt_…" \
 
 `price` is required. `name` and `taxRate` (or `tax_rate`) are optional. Creates a minimal article if the barcode is unknown.
 
-### `admin` scope — delete price by barcode
-
-#### DELETE `?barcode=<barcode>`
+#### DELETE `?barcode=<barcode>` — delete by barcode
 
 ```bash
 curl -X DELETE -H "Authorization: Bearer amt_…" \
@@ -102,7 +102,7 @@ Deletes the article (article barcode) or variation (variation barcode). Returns 
 
 ### Printer client (also available with browser session)
 
-Logged-in users have the same printer access as a `write` token.
+Logged-in users have the same printer access as an `app` token.
 
 #### GET `/api/v1/printer/printers` — snapshot of connected printers
 
@@ -126,7 +126,7 @@ curl -H "Authorization: Bearer amt_…" \
 | Auth | How to connect |
 |------|----------------|
 | Browser session | `EventSource('/api/v1/printer/events')` — sends `auth_token` cookie automatically (same origin) |
-| `write` API token | `Authorization: Bearer` on `curl -N`, **or** `?access_token=amt_…` for `EventSource` |
+| `app` API token | `Authorization: Bearer` on `curl -N`, **or** `?access_token=amt_…` for `EventSource` |
 
 On connect you receive a `printers` event with the current list. Stay subscribed; `printer_online` / `printer_offline` update presence without polling. `GET /api/v1/printer/printers` is a one-shot snapshot if you only need a quick check.
 
@@ -149,7 +149,7 @@ es.addEventListener('printer_offline', (e) => {
 });
 ```
 
-**API client (`write` token):**
+**API client (`app` token):**
 
 ```javascript
 const es = new EventSource(
@@ -210,15 +210,15 @@ Implement a small daemon on the machine attached to the Zebra (or compatible) pr
 ### Overview
 
 ```
-┌─────────────┐   SSE (printer)    ┌──────────────┐   SSE (write/session)   ┌──────────────┐
-│ Printer     │◄──────────────────►│ API server   │◄───────────────────────►│ Print client │
-│ agent       │   print / ack      │ (multiplex)  │   events / POST print   │ (write/UI)   │
+┌─────────────┐   SSE (printer)    ┌──────────────┐   SSE (app/session)     ┌──────────────┐
+│ Printer     │◄──────────────────►│ API server   │◄──────────────────────►│ Print client │
+│ agent       │   print / ack      │ (multiplex)  │   events / POST print   │ (app/UI)     │
 └─────────────┘                    └──────────────┘                         └──────────────┘
        │                                    │
        └── sends ZPL to local printer ──────┘
 ```
 
-The server keeps one SSE connection per agent. All `write`/session clients share printer status and job results through a separate client SSE channel. Print jobs are routed from `POST /print` to the correct agent SSE stream.
+The server keeps one SSE connection per agent. All `app`/session clients share printer status and job results through a separate client SSE channel. Print jobs are routed from `POST /print` to the correct agent SSE stream.
 
 ### 1. Connect — GET `/api/v1/printer/agent`
 
@@ -324,7 +324,7 @@ async function runAgent(token, printerName) {
 
 ### Agent requirements
 
-- Token with **`printer`** scope only (no `write` needed on the device).
+- Token with **`printer`** scope (often combined with **`app`** on the companion device).
 - Handle SSE reconnects; jobs in flight when disconnected will time out on the client side.
 - Send valid ZPL; the server does not validate label content.
 - Ack every `print` event exactly once with the matching `jobId`.

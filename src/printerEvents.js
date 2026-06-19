@@ -3,7 +3,7 @@ const RECONNECT_MS = 3000;
 /**
  * Persistent SSE client for /api/v1/printer/events.
  * Session auth uses cookies (same-origin EventSource).
- * API tokens with write scope: pass accessToken for ?access_token=.
+ * API tokens with app scope: pass accessToken for ?access_token=.
  */
 export function connectPrinterEvents({ onPrinters, accessToken } = {}) {
   const printers = new Map();

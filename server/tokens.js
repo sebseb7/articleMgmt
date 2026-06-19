@@ -2,19 +2,38 @@ import { createHash, randomBytes } from 'node:crypto';
 import db from './db.js';
 
 const TOKEN_PREFIX = 'amt_';
-const VALID_SCOPES = new Set(['read', 'write', 'admin', 'printer']);
+const VALID_SCOPES = new Set(['app', 'printer']);
+const LEGACY_APP_SCOPES = ['read', 'write', 'admin'];
 
 function hashToken(plaintext) {
   return createHash('sha256').update(plaintext).digest('hex');
 }
 
-function parseScopes(raw) {
+function parseStoredScopes(raw) {
   try {
     const scopes = JSON.parse(raw);
-    return Array.isArray(scopes) ? scopes.filter((s) => VALID_SCOPES.has(s)) : [];
+    if (!Array.isArray(scopes)) return [];
+    return scopes.map((s) => String(s).trim().toLowerCase());
   } catch {
     return [];
   }
+}
+
+/** Legacy read/write/admin tokens are treated as `app` at auth time. */
+export function effectiveScopes(scopes) {
+  const set = new Set(scopes);
+  if (LEGACY_APP_SCOPES.some((scope) => set.has(scope))) {
+    set.add('app');
+  }
+  return [...set];
+}
+
+export function displayScopes(scopes) {
+  const stored = scopes.filter((s) => VALID_SCOPES.has(s));
+  if (LEGACY_APP_SCOPES.some((scope) => scopes.includes(scope)) && !stored.includes('app')) {
+    return ['app', ...stored];
+  }
+  return stored;
 }
 
 export function normalizeScopes(scopes) {
@@ -36,7 +55,7 @@ export function listTokensForUser(userId) {
       id: row.id,
       name: row.name,
       tokenPrefix: row.token_prefix,
-      scopes: parseScopes(row.scopes),
+      scopes: displayScopes(parseStoredScopes(row.scopes)),
       createdAt: row.created_at,
       lastUsedAt: row.last_used_at,
     }));
@@ -47,7 +66,7 @@ export function createToken(userId, name, scopes) {
   if (!label) throw new Error('Token name is required.');
   const normalized = normalizeScopes(scopes);
   if (normalized.length === 0) {
-    throw new Error('At least one scope (read, write, admin, printer) is required.');
+    throw new Error('At least one scope (app, printer) is required.');
   }
 
   const plaintext = `${TOKEN_PREFIX}${randomBytes(24).toString('base64url')}`;
@@ -89,11 +108,13 @@ export function verifyApiToken(plaintext) {
 
   db.prepare("UPDATE tokens SET last_used_at = datetime('now') WHERE id = ?").run(row.id);
 
+  const scopes = parseStoredScopes(row.scopes);
+
   return {
     type: 'api_token',
     tokenId: row.id,
     tokenName: row.name,
     user,
-    scopes: parseScopes(row.scopes),
+    scopes,
   };
 }

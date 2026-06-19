@@ -17,6 +17,14 @@ const SCOPE_OPTIONS = [
   { id: 'admin', label: 'Admin — delete by barcode' },
 ];
 
+function apiBaseUrl() {
+  return window.location.origin;
+}
+
+function tokenQrPayload(token) {
+  return JSON.stringify({ url: apiBaseUrl(), token });
+}
+
 export default class TokensDialog extends Component {
   state = {
     tokens: [],
@@ -231,10 +239,13 @@ export default class TokensDialog extends Component {
         <DialogTitle>Token QR code</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pb: 3 }}>
           <Box sx={{ p: 2, bgcolor: 'common.white', borderRadius: 1 }}>
-            <QRCodeSVG value={createdToken} size={220} level="M" />
+            <QRCodeSVG value={tokenQrPayload(createdToken)} size={220} level="M" />
           </Box>
           <Typography variant="body2" color="text.secondary" align="center">
-            Scan to copy the API token. It will not be shown again after you close this dialog.
+            JSON payload with API base URL and token. It will not be shown again after you close this dialog.
+          </Typography>
+          <Typography variant="caption" color="text.secondary" fontFamily="monospace" sx={{ wordBreak: 'break-all', px: 1 }}>
+            {tokenQrPayload(createdToken)}
           </Typography>
         </DialogContent>
         <DialogActions>

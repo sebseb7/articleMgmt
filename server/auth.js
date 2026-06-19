@@ -90,22 +90,53 @@ function resolveBearer(req) {
   return verifyApiToken(header.slice(7).trim());
 }
 
-export function requireAuth(req, res, next) {
+export function resolveAuth(req) {
   const session = resolveSession(req);
-  if (session) {
-    req.user = session.user;
-    req.auth = session;
-    return next();
-  }
+  if (session) return session;
 
   const apiAuth = resolveBearer(req);
-  if (apiAuth) {
-    req.user = apiAuth.user;
-    req.auth = apiAuth;
-    return next();
-  }
+  if (apiAuth) return apiAuth;
 
-  return res.status(401).json({ error: 'Authentication required.' });
+  const queryToken = req.query?.access_token;
+  if (queryToken) return verifyApiToken(String(queryToken));
+
+  return null;
+}
+
+export function attachAuth(req, res, next) {
+  const auth = resolveAuth(req);
+  if (!auth) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  req.user = auth.user;
+  req.auth = auth;
+  next();
+}
+
+export function requireAuth(req, res, next) {
+  const auth = resolveAuth(req);
+  if (!auth) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  req.user = auth.user;
+  req.auth = auth;
+  next();
+}
+
+export function canUsePrinterClient(auth) {
+  if (!auth) return false;
+  if (auth.type === 'session') return true;
+  return auth.scopes.includes('write');
+}
+
+export function requirePrinterClient(req, res, next) {
+  if (!req.auth) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  if (!canUsePrinterClient(req.auth)) {
+    return res.status(403).json({ error: 'Missing required scope: write (or session login).' });
+  }
+  next();
 }
 
 export function requireSession(req, res, next) {

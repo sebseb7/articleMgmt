@@ -6,6 +6,10 @@
 
 Import, manage, and re-export SumUp item CSVs. Vite + React + MUI frontend, Express + better-sqlite3 backend.
 
+## Companion app: [ZebraLabel](https://github.com/sebseb7/ZebraLabel)
+
+[ZebraLabel](https://github.com/sebseb7/ZebraLabel) is the Android companion for in-store label printing. Scan a product barcode with the phone camera (Google Barcode API / ML Kit), look up the price from this server’s API, and send a print job to a connected Zebra printer. Pair the app by scanning an API token QR code from **Settings → API tokens** in the web UI. See [docs/api-tokens.md](docs/api-tokens.md) for the HTTP API.
+
 ## Ports
 
 | Service  | Port |

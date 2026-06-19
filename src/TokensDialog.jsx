@@ -13,8 +13,9 @@ import { withNoAutofill } from './textFieldUtils.js';
 
 const SCOPE_OPTIONS = [
   { id: 'read', label: 'Read — query price by barcode' },
-  { id: 'write', label: 'Write — create or update price' },
+  { id: 'write', label: 'Write — update price, use printers' },
   { id: 'admin', label: 'Admin — delete by barcode' },
+  { id: 'printer', label: 'Printer — printer agent' },
 ];
 
 function apiBaseUrl() {
@@ -123,7 +124,7 @@ export default class TokensDialog extends Component {
         <DialogTitle>API tokens</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Machine tokens for the price API (<code>GET/PUT/DELETE /api/v1/price</code>).
+            Machine tokens for the price API and printer integration.
             Pass as <code>Authorization: Bearer &lt;token&gt;</code>.
           </Typography>
 

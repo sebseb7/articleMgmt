@@ -26,6 +26,10 @@ import tokensDelete from './tokens/delete.js';
 import v1PriceGet from './v1/price/get.js';
 import v1PricePut from './v1/price/put.js';
 import v1PriceDelete from './v1/price/delete.js';
+import v1PrinterAgent from './v1/printer/agent.js';
+import v1PrinterAgentAck from './v1/printer/agent-ack.js';
+import v1PrinterEvents from './v1/printer/events.js';
+import v1PrinterPrint from './v1/printer/print.js';
 
 const routes = [
   authLogin,
@@ -56,6 +60,10 @@ const routes = [
   v1PriceGet,
   v1PricePut,
   v1PriceDelete,
+  v1PrinterAgent,
+  v1PrinterAgentAck,
+  v1PrinterEvents,
+  v1PrinterPrint,
 ];
 
 export default function registerApi(app) {

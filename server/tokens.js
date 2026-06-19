@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import db from './db.js';
 
 const TOKEN_PREFIX = 'amt_';
-const VALID_SCOPES = new Set(['read', 'write', 'admin']);
+const VALID_SCOPES = new Set(['read', 'write', 'admin', 'printer']);
 
 function hashToken(plaintext) {
   return createHash('sha256').update(plaintext).digest('hex');
@@ -47,7 +47,7 @@ export function createToken(userId, name, scopes) {
   if (!label) throw new Error('Token name is required.');
   const normalized = normalizeScopes(scopes);
   if (normalized.length === 0) {
-    throw new Error('At least one scope (read, write, admin) is required.');
+    throw new Error('At least one scope (read, write, admin, printer) is required.');
   }
 
   const plaintext = `${TOKEN_PREFIX}${randomBytes(24).toString('base64url')}`;

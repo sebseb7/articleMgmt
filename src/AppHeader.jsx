@@ -1,6 +1,7 @@
 import { PureComponent, createRef } from 'react';
 import {
   AppBar, Toolbar, Typography, Button, Box, IconButton, Tooltip,
+  Menu, MenuItem, ListItemIcon, ListItemText, Divider,
 } from '@mui/material';
 import UploadIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -10,6 +11,10 @@ import ArticleIcon from '@mui/icons-material/Article';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
+import SettingsIcon from '@mui/icons-material/Settings';
+import NavigationIcon from '@mui/icons-material/Menu';
+import KeyIcon from '@mui/icons-material/Key';
+import CheckIcon from '@mui/icons-material/Check';
 
 const SUMUP_CATALOG_URL = 'https://me.sumup.com/catalog';
 
@@ -17,12 +22,118 @@ const SUMUP_CATALOG_URL = 'https://me.sumup.com/catalog';
 export default class AppHeader extends PureComponent {
   fileRef = createRef();
 
+  state = {
+    navAnchor: null,
+    settingsAnchor: null,
+  };
+
+  openNavMenu = (e) => {
+    this.setState({ navAnchor: e.currentTarget });
+  };
+
+  closeNavMenu = () => {
+    this.setState({ navAnchor: null });
+  };
+
+  openSettingsMenu = (e) => {
+    this.setState({ settingsAnchor: e.currentTarget });
+  };
+
+  closeSettingsMenu = () => {
+    this.setState({ settingsAnchor: null });
+  };
+
+  handleNavigate = (target) => {
+    this.closeNavMenu();
+    this.props.onNavigate(target);
+  };
+
+  handleSettingsAction = (action) => {
+    this.closeSettingsMenu();
+    if (action === 'tokens') this.props.onOpenTokens();
+    else if (action === 'import') this.fileRef.current?.click();
+    else if (action === 'export') this.props.onExport();
+    else if (action === 'flush') this.props.onFlushDb();
+  };
+
+  renderNavItem = (target, icon, label, selected) => (
+    <MenuItem key={target} onClick={() => this.handleNavigate(target)} selected={selected}>
+      <ListItemIcon>{icon}</ListItemIcon>
+      <ListItemText>{label}</ListItemText>
+      {selected && (
+        <ListItemIcon sx={{ minWidth: 'auto !important', ml: 1 }}>
+          <CheckIcon fontSize="small" />
+        </ListItemIcon>
+      )}
+    </MenuItem>
+  );
+
+  renderMenus = (isIcon) => {
+    const { view, missingListOpen } = this.props;
+    const { navAnchor, settingsAnchor } = this.state;
+    const articlesSelected = view === 'articles' && !missingListOpen;
+    const changelogSelected = view === 'changelog';
+    const missingSelected = missingListOpen;
+
+    const navTrigger = isIcon ? (
+      <Tooltip title="Navigate">
+        <IconButton color="inherit" onClick={this.openNavMenu}>
+          <NavigationIcon />
+        </IconButton>
+      </Tooltip>
+    ) : (
+      <Button color="inherit" startIcon={<NavigationIcon />} onClick={this.openNavMenu}>
+        Navigate
+      </Button>
+    );
+
+    const settingsTrigger = isIcon ? (
+      <Tooltip title="Settings">
+        <IconButton color="inherit" onClick={this.openSettingsMenu}>
+          <SettingsIcon />
+        </IconButton>
+      </Tooltip>
+    ) : (
+      <Button color="inherit" startIcon={<SettingsIcon />} onClick={this.openSettingsMenu}>
+        Settings
+      </Button>
+    );
+
+    return (
+      <>
+        {navTrigger}
+        <Menu anchorEl={navAnchor} open={Boolean(navAnchor)} onClose={this.closeNavMenu}>
+          {this.renderNavItem('articles', <ArticleIcon fontSize="small" />, 'Articles', articlesSelected)}
+          {this.renderNavItem('changelog', <HistoryIcon fontSize="small" />, 'Changelog', changelogSelected)}
+          {this.renderNavItem('missing', <QrCode2Icon fontSize="small" />, 'Missing barcodes', missingSelected)}
+        </Menu>
+
+        {settingsTrigger}
+        <Menu anchorEl={settingsAnchor} open={Boolean(settingsAnchor)} onClose={this.closeSettingsMenu}>
+          <MenuItem onClick={() => this.handleSettingsAction('tokens')}>
+            <ListItemIcon><KeyIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>API tokens</ListItemText>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={() => this.handleSettingsAction('import')}>
+            <ListItemIcon><UploadIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Import CSV</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => this.handleSettingsAction('export')}>
+            <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Export CSV</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => this.handleSettingsAction('flush')}>
+            <ListItemIcon><DeleteSweepIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Flush DB</ListItemText>
+          </MenuItem>
+        </Menu>
+      </>
+    );
+  };
+
   render() {
-    const {
-      user, isMobile, view, onImportFile, onExport, onFlushDb, onLogout, onToggleView,
-      onOpenMissingList,
-    } = this.props;
-    const onChangelog = view === 'articles';
+    const { user, isMobile, onImportFile, onLogout } = this.props;
 
     return (
       <AppBar position="static" elevation={0}>
@@ -75,31 +186,7 @@ export default class AppHeader extends PureComponent {
                     <StorefrontIcon />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title={onChangelog ? 'Changelog' : 'Articles'}>
-                  <IconButton color="inherit" onClick={onToggleView}>
-                    {onChangelog ? <HistoryIcon /> : <ArticleIcon />}
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Missing barcodes">
-                  <IconButton color="inherit" onClick={onOpenMissingList}>
-                    <QrCode2Icon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Import CSV">
-                  <IconButton color="inherit" onClick={() => this.fileRef.current?.click()}>
-                    <UploadIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Export CSV">
-                  <IconButton color="inherit" onClick={onExport}>
-                    <DownloadIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Flush DB">
-                  <IconButton color="inherit" onClick={onFlushDb}>
-                    <DeleteSweepIcon />
-                  </IconButton>
-                </Tooltip>
+                {this.renderMenus(true)}
                 <Tooltip title={`Logout (${user.username})`}>
                   <IconButton color="inherit" onClick={onLogout}>
                     <LogoutIcon />
@@ -118,29 +205,7 @@ export default class AppHeader extends PureComponent {
                 >
                   SumUp
                 </Button>
-                <Button
-                  color="inherit"
-                  startIcon={onChangelog ? <HistoryIcon /> : <ArticleIcon />}
-                  onClick={onToggleView}
-                >
-                  {onChangelog ? 'Changelog' : 'Articles'}
-                </Button>
-                <Button
-                  color="inherit"
-                  startIcon={<QrCode2Icon />}
-                  onClick={onOpenMissingList}
-                >
-                  Missing barcodes
-                </Button>
-                <Button color="inherit" startIcon={<UploadIcon />} onClick={() => this.fileRef.current?.click()}>
-                  Import CSV
-                </Button>
-                <Button color="inherit" startIcon={<DownloadIcon />} onClick={onExport}>
-                  Export CSV
-                </Button>
-                <Button color="inherit" startIcon={<DeleteSweepIcon />} onClick={onFlushDb}>
-                  Flush DB
-                </Button>
+                {this.renderMenus(false)}
                 <Typography variant="body2" sx={{ opacity: 0.9, mx: 0.5 }}>
                   {user.username}
                 </Typography>

@@ -197,6 +197,19 @@ export const api = {
   flushDb: () =>
     fetch('/api/flush', { method: 'POST', ...credentials }).then(json),
 
+  listTokens: () => fetch('/api/tokens', credentials).then(json),
+
+  createToken: (name, scopes) =>
+    fetch('/api/tokens', {
+      method: 'POST',
+      ...credentials,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, scopes }),
+    }).then(json),
+
+  deleteToken: (id) =>
+    fetch(`/api/tokens/${id}`, { method: 'DELETE', ...credentials }).then(json),
+
   exportCsv: async () => {
     const r = await fetch('/api/export', credentials);
     if (r.status === 401) {

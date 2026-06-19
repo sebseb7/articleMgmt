@@ -1,0 +1,247 @@
+import { Component } from 'react';
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
+  Table, TableHead, TableRow, TableCell, TableBody, IconButton,
+  Box, Typography, FormGroup, FormControlLabel, Checkbox, Alert,
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/DeleteOutlined';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
+import { QRCodeSVG } from 'qrcode.react';
+import { api } from './api.js';
+import { withNoAutofill } from './textFieldUtils.js';
+
+const SCOPE_OPTIONS = [
+  { id: 'read', label: 'Read — query price by barcode' },
+  { id: 'write', label: 'Write — create or update price' },
+  { id: 'admin', label: 'Admin — delete by barcode' },
+];
+
+export default class TokensDialog extends Component {
+  state = {
+    tokens: [],
+    name: '',
+    scopes: { read: true, write: false, admin: false },
+    createdToken: '',
+    qrOpen: false,
+    error: '',
+    loading: false,
+    creating: false,
+  };
+
+  componentDidUpdate(prevProps) {
+    if (this.props.open && !prevProps.open) {
+      this.setState({
+        name: '',
+        scopes: { read: true, write: false, admin: false },
+        createdToken: '',
+        qrOpen: false,
+        error: '',
+      });
+      this.load();
+    }
+  }
+
+  load = async () => {
+    this.setState({ loading: true });
+    try {
+      const tokens = await api.listTokens();
+      this.setState({ tokens });
+    } catch (e) {
+      this.setState({ error: e.message });
+    } finally {
+      this.setState({ loading: false });
+    }
+  };
+
+  handleScopeChange = (scope) => (e) => {
+    this.setState((prev) => ({
+      scopes: { ...prev.scopes, [scope]: e.target.checked },
+    }));
+  };
+
+  handleCreate = async () => {
+    const { name, scopes } = this.state;
+    const selected = SCOPE_OPTIONS.filter((o) => scopes[o.id]).map((o) => o.id);
+    this.setState({ creating: true, error: '' });
+    try {
+      const created = await api.createToken(name, selected);
+      this.setState({ createdToken: created.token, name: '', scopes: { read: true, write: false, admin: false } });
+      await this.load();
+    } catch (e) {
+      this.setState({ error: e.message });
+    } finally {
+      this.setState({ creating: false });
+    }
+  };
+
+  handleDelete = async (id) => {
+    this.setState({ error: '' });
+    try {
+      await api.deleteToken(id);
+      await this.load();
+    } catch (e) {
+      this.setState({ error: e.message });
+    }
+  };
+
+  copyToken = async () => {
+    const { createdToken } = this.state;
+    if (!createdToken) return;
+    try {
+      await navigator.clipboard.writeText(createdToken);
+    } catch {
+      // clipboard may be unavailable
+    }
+  };
+
+  openQr = () => {
+    if (this.state.createdToken) this.setState({ qrOpen: true });
+  };
+
+  closeQr = () => {
+    this.setState({ qrOpen: false });
+  };
+
+  render() {
+    const { open, onClose } = this.props;
+    const {
+      tokens, name, scopes, createdToken, qrOpen, error, loading, creating,
+    } = this.state;
+
+    return (
+      <>
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle>API tokens</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Machine tokens for the price API (<code>GET/PUT/DELETE /api/v1/price</code>).
+            Pass as <code>Authorization: Bearer &lt;token&gt;</code>.
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => this.setState({ error: '' })}>
+              {error}
+            </Alert>
+          )}
+
+          {createdToken && (
+            <Alert
+              severity="success"
+              sx={{ mb: 2 }}
+              action={(
+                <Box sx={{ display: 'flex' }}>
+                  <IconButton color="inherit" size="small" onClick={this.openQr} aria-label="Show token as QR code">
+                    <QrCode2Icon fontSize="small" />
+                  </IconButton>
+                  <IconButton color="inherit" size="small" onClick={this.copyToken} aria-label="Copy token">
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
+            >
+              <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
+                Copy this token now — it will not be shown again:
+                {' '}
+                <strong>{createdToken}</strong>
+              </Typography>
+            </Alert>
+          )}
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>Create token</Typography>
+            <TextField
+              label="Name"
+              size="small"
+              fullWidth
+              value={name}
+              onChange={(e) => this.setState({ name: e.target.value })}
+              sx={{ mb: 1.5 }}
+              slotProps={withNoAutofill()}
+            />
+            <FormGroup>
+              {SCOPE_OPTIONS.map((opt) => (
+                <FormControlLabel
+                  key={opt.id}
+                  control={(
+                    <Checkbox
+                      size="small"
+                      checked={scopes[opt.id]}
+                      onChange={this.handleScopeChange(opt.id)}
+                    />
+                  )}
+                  label={opt.label}
+                />
+              ))}
+            </FormGroup>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={this.handleCreate}
+              disabled={creating || !name.trim()}
+              sx={{ mt: 1 }}
+            >
+              Create token
+            </Button>
+          </Box>
+
+          <Typography variant="subtitle2" gutterBottom>Your tokens</Typography>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Prefix</TableCell>
+                <TableCell>Scopes</TableCell>
+                <TableCell>Created</TableCell>
+                <TableCell align="right" />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {tokens.map((token) => (
+                <TableRow key={token.id}>
+                  <TableCell>{token.name}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" fontFamily="monospace">{token.tokenPrefix}</Typography>
+                  </TableCell>
+                  <TableCell>{token.scopes.join(', ')}</TableCell>
+                  <TableCell>{token.createdAt}</TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => this.handleDelete(token.id)} aria-label="Delete token">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!loading && tokens.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Typography variant="body2" color="text.secondary">No tokens yet.</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={qrOpen} onClose={this.closeQr} maxWidth="xs" fullWidth>
+        <DialogTitle>Token QR code</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pb: 3 }}>
+          <Box sx={{ p: 2, bgcolor: 'common.white', borderRadius: 1 }}>
+            <QRCodeSVG value={createdToken} size={220} level="M" />
+          </Box>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Scan to copy the API token. It will not be shown again after you close this dialog.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={this.closeQr}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      </>
+    );
+  }
+}

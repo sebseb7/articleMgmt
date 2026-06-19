@@ -84,6 +84,19 @@ db.exec(`
     barcode TEXT NOT NULL PRIMARY KEY,
     note    TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS tokens (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name         TEXT NOT NULL,
+    token_hash   TEXT NOT NULL UNIQUE,
+    token_prefix TEXT NOT NULL,
+    scopes       TEXT NOT NULL,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    last_used_at TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
 `);
 
 db.prepare(

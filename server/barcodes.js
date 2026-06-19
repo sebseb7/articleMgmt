@@ -8,14 +8,14 @@ export function normalizeBarcode(value) {
 
 function findArticleByBarcode(barcode) {
   return db.prepare(`
-    SELECT id, item_name, barcode FROM articles
+    SELECT id, item_name, barcode, price, tax_rate FROM articles
     WHERE barcode IS NOT NULL AND TRIM(barcode) = ?
   `).get(barcode);
 }
 
 function findVariationByBarcode(barcode) {
   return db.prepare(`
-    SELECT v.id, v.article_id, v.variation_name, v.barcode, a.item_name
+    SELECT v.id, v.article_id, v.variation_name, v.barcode, v.price, a.item_name, a.tax_rate
     FROM variations v
     JOIN articles a ON a.id = v.article_id
     WHERE v.barcode IS NOT NULL AND TRIM(v.barcode) = ?
@@ -33,6 +33,109 @@ export function lookupBarcode(barcode) {
   }
   const variation = findVariationByBarcode(value);
   return { article: null, variation: variation ?? null };
+}
+
+export function lookupBarcodePrice(barcode) {
+  const value = normalizeBarcode(barcode);
+  if (!value) return null;
+
+  const { article, variation } = lookupBarcode(value);
+  if (article) {
+    return {
+      found: true,
+      barcode: value,
+      type: 'article',
+      articleId: article.id,
+      variationId: null,
+      name: article.item_name,
+      price: article.price,
+      taxRate: article.tax_rate,
+    };
+  }
+  if (variation) {
+    return {
+      found: true,
+      barcode: value,
+      type: 'variation',
+      articleId: variation.article_id,
+      variationId: variation.id,
+      name: `${variation.item_name} — ${variation.variation_name}`,
+      price: variation.price,
+      taxRate: variation.tax_rate,
+    };
+  }
+  return { found: false, barcode: value };
+}
+
+export function upsertBarcodePrice(barcode, { price, name, taxRate } = {}) {
+  const value = normalizeBarcode(barcode);
+  if (!value) throw new Error('Barcode is required.');
+  if (price === undefined || price === null || Number.isNaN(Number(price))) {
+    throw new Error('Price is required.');
+  }
+  const numericPrice = Number(price);
+
+  const { article, variation } = lookupBarcode(value);
+  if (article) {
+    const itemName = name != null && String(name).trim() ? String(name).trim() : null;
+    const tax = taxRate !== undefined && taxRate !== null && !Number.isNaN(Number(taxRate))
+      ? Number(taxRate)
+      : null;
+    db.prepare(`
+      UPDATE articles
+      SET price = ?, item_name = COALESCE(?, item_name), tax_rate = COALESCE(?, tax_rate)
+      WHERE id = ?
+    `).run(numericPrice, itemName, tax, article.id);
+    return lookupBarcodePrice(value);
+  }
+  if (variation) {
+    db.prepare('UPDATE variations SET price = ? WHERE id = ?').run(numericPrice, variation.id);
+    return lookupBarcodePrice(value);
+  }
+
+  const itemName = String(name || '').trim() || `Item ${value}`;
+  const tax = taxRate !== undefined && taxRate !== null && !Number.isNaN(Number(taxRate))
+    ? Number(taxRate)
+    : null;
+  const nextOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM articles').get().m + 1;
+  const info = db.prepare(`
+    INSERT INTO articles (item_name, tax_rate, price, barcode, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(itemName, tax, numericPrice, value, nextOrder);
+
+  return {
+    found: true,
+    barcode: value,
+    type: 'article',
+    articleId: Number(info.lastInsertRowid),
+    variationId: null,
+    name: itemName,
+    price: numericPrice,
+    taxRate: tax,
+    created: true,
+  };
+}
+
+export function deleteBarcodePrice(barcode) {
+  const value = normalizeBarcode(barcode);
+  if (!value) throw new Error('Barcode is required.');
+
+  const { article, variation } = lookupBarcode(value);
+  if (article) {
+    db.prepare('DELETE FROM articles WHERE id = ?').run(article.id);
+    return { deleted: true, type: 'article', articleId: article.id, variationId: null, barcode: value };
+  }
+  if (variation) {
+    db.prepare('DELETE FROM variations WHERE id = ?').run(variation.id);
+    return {
+      deleted: true,
+      type: 'variation',
+      articleId: variation.article_id,
+      variationId: variation.id,
+      barcode: value,
+    };
+  }
+  return { deleted: false, barcode: value };
 }
 
 export function collectBarcodesFromArticleBody(body) {

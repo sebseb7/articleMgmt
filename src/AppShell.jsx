@@ -10,13 +10,14 @@ import ChangelogPanel from './ChangelogPanel.jsx';
 export default class AppShell extends PureComponent {
   render() {
     const {
-      user, onLogout, searchRef, view, onToggleView,
+      user, onLogout, searchRef, view,
       query, stats, isMobile, missingBarcodeOnly,
       categoryCounts, categoryFilters,
       onQueryChange, onMissingBarcodeChange, onSearchEnter,
       onAddCategoryFilter, onRemoveCategoryFilter,
       onOpenCategories, onNewArticle,
-      onImportFile, onExport, onFlushDb, onOpenMissingList,
+      onImportFile, onExport, onFlushDb, onNavigate, onOpenTokens,
+      missingListOpen,
       articles, total, page, pageSize, loading, search,
       barcodeCapture, barcodeCaptureBuffer,
       onStartBarcodeCapture, onEditArticle, onDeleteArticle,
@@ -33,11 +34,12 @@ export default class AppShell extends PureComponent {
           user={user}
           isMobile={isMobile}
           view={view}
-          onToggleView={onToggleView}
+          missingListOpen={missingListOpen}
+          onNavigate={onNavigate}
+          onOpenTokens={onOpenTokens}
           onImportFile={onImportFile}
           onExport={onExport}
           onFlushDb={onFlushDb}
-          onOpenMissingList={onOpenMissingList}
           onLogout={onLogout}
         />
         <Container

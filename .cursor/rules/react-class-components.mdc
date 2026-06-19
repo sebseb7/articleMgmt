@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-prefer class components over function components

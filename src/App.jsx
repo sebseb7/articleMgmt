@@ -5,6 +5,7 @@ import ArticleDialog from './ArticleDialog.jsx';
 import CategoryDialog from './CategoryDialog.jsx';
 import MissingBarcodeDialog from './MissingBarcodeDialog.jsx';
 import MissingListDialog from './MissingListDialog.jsx';
+import TokensDialog from './TokensDialog.jsx';
 import AppShell from './AppShell.jsx';
 import ImportProgressOverlay from './ImportProgressOverlay.jsx';
 import { theme } from './theme.js';
@@ -30,6 +31,7 @@ class App extends Component {
     dialog: { open: false, initial: null },
     missingBarcodeDialog: { open: false, barcode: '', initialNote: '', isExisting: false },
     categoriesOpen: false,
+    tokensOpen: false,
     missingListWantsToOpen: false,
     missingListOpen: false,
     categories: [],
@@ -289,10 +291,27 @@ class App extends Component {
     }
   };
 
-  toggleView = () => {
-    this.setState((prev) => ({
-      view: prev.view === 'articles' ? 'changelog' : 'articles',
-    }));
+  handleNavigate = (target) => {
+    if (target === 'articles') {
+      this.setState({ view: 'articles', missingListOpen: false, missingListWantsToOpen: false });
+      return;
+    }
+    if (target === 'changelog') {
+      this.setState({ view: 'changelog', missingListOpen: false, missingListWantsToOpen: false });
+      return;
+    }
+    if (target === 'missing') {
+      this.setState({ view: 'articles' });
+      this.openMissingListDialog();
+    }
+  };
+
+  openTokensDialog = () => {
+    this.setState({ tokensOpen: true });
+  };
+
+  closeTokensDialog = () => {
+    this.setState({ tokensOpen: false });
   };
 
   handleChangelogPageSizeChange = (nextPageSize) => {
@@ -647,7 +666,7 @@ class App extends Component {
       view,
       articles, total, page, pageSize, stats, loading, query, search,
       missingBarcodeOnly, categoryFilters, categoryCounts,
-      dialog, missingBarcodeDialog, categoriesOpen, missingListWantsToOpen, missingListOpen, categories, isMobile,
+      dialog, missingBarcodeDialog, categoriesOpen, tokensOpen, missingListWantsToOpen, missingListOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
       changelogEntries, changelogTotal, changelogPage, changelogPageSize, changelogLoading,
       importProgress,
@@ -660,7 +679,9 @@ class App extends Component {
           user={user}
           onLogout={onLogout}
           view={view}
-          onToggleView={this.toggleView}
+          missingListOpen={missingListOpen}
+          onNavigate={this.handleNavigate}
+          onOpenTokens={this.openTokensDialog}
           searchRef={this.searchRef}
           query={query}
           stats={stats}
@@ -678,7 +699,6 @@ class App extends Component {
           onImportFile={this.handleImportFile}
           onExport={this.handleExport}
           onFlushDb={this.handleFlushDb}
-          onOpenMissingList={this.openMissingListDialog}
           articles={articles}
           total={total}
           page={page}
@@ -724,6 +744,11 @@ class App extends Component {
           onClose={this.closeMissingBarcodeDialog}
           onSave={this.handleSaveMissingBarcode}
           onRemove={this.handleRemoveMissingBarcode}
+        />
+
+        <TokensDialog
+          open={tokensOpen}
+          onClose={this.closeTokensDialog}
         />
 
         <MissingListDialog

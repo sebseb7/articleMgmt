@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+- prefer react class components over function components, avoid hooks
+- client has an api.js which has all api interfaces
+- backed has one file per endpoint

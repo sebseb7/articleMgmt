@@ -20,6 +20,12 @@ import categoriesDelete from './categories/delete.js';
 import flushPost from './flush/post.js';
 import importPost from './import/post.js';
 import exportGet from './export/get.js';
+import tokensList from './tokens/list.js';
+import tokensCreate from './tokens/create.js';
+import tokensDelete from './tokens/delete.js';
+import v1PriceGet from './v1/price/get.js';
+import v1PricePut from './v1/price/put.js';
+import v1PriceDelete from './v1/price/delete.js';
 
 const routes = [
   authLogin,
@@ -44,6 +50,12 @@ const routes = [
   flushPost,
   importPost,
   exportGet,
+  tokensList,
+  tokensCreate,
+  tokensDelete,
+  v1PriceGet,
+  v1PricePut,
+  v1PriceDelete,
 ];
 
 export default function registerApi(app) {

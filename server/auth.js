@@ -1,10 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
+import { verifyApiToken } from './tokens.js';
 
 const JWT_SECRET = process.env.AUTH_SECRET || 'dev-only-change-me-in-production';
 const COOKIE_NAME = 'auth_token';
 const TOKEN_TTL = '7d';
+const SESSION_SCOPES = ['read', 'write', 'admin'];
 
 export { COOKIE_NAME };
 
@@ -72,19 +74,56 @@ export function cookieOptions() {
   };
 }
 
-export function requireAuth(req, res, next) {
+function resolveSession(req) {
   const token = req.cookies?.[COOKIE_NAME];
-  if (!token) {
-    return res.status(401).json({ error: 'Authentication required.' });
-  }
+  if (!token) return null;
   const payload = verifyToken(token);
-  if (!payload) {
-    return res.status(401).json({ error: 'Invalid or expired session.' });
-  }
+  if (!payload) return null;
   const user = getUserById(payload.sub);
-  if (!user) {
-    return res.status(401).json({ error: 'User not found.' });
+  if (!user) return null;
+  return { type: 'session', user, scopes: SESSION_SCOPES };
+}
+
+function resolveBearer(req) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return null;
+  return verifyApiToken(header.slice(7).trim());
+}
+
+export function requireAuth(req, res, next) {
+  const session = resolveSession(req);
+  if (session) {
+    req.user = session.user;
+    req.auth = session;
+    return next();
   }
-  req.user = user;
+
+  const apiAuth = resolveBearer(req);
+  if (apiAuth) {
+    req.user = apiAuth.user;
+    req.auth = apiAuth;
+    return next();
+  }
+
+  return res.status(401).json({ error: 'Authentication required.' });
+}
+
+export function requireSession(req, res, next) {
+  if (req.auth?.type !== 'session') {
+    return res.status(403).json({ error: 'Session authentication required.' });
+  }
   next();
+}
+
+export function requireScope(...required) {
+  return (req, res, next) => {
+    if (!req.auth) {
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+    const missing = required.filter((scope) => !req.auth.scopes.includes(scope));
+    if (missing.length > 0) {
+      return res.status(403).json({ error: `Missing required scope: ${missing.join(', ')}.` });
+    }
+    next();
+  };
 }

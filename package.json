@@ -12,6 +12,8 @@
     "server:test": "node server/index.js",
     "web": "vite",
     "web:test": "vite --port 4993",
+    "preview:test": "vite preview --port 4993",
+    "start:lighthouse": "node scripts/lighthouse-serve.js",
     "build": "vite build",
     "preview": "vite preview",
     "user": "node server/scripts/user.js",
@@ -20,8 +22,8 @@
     "webhook": "node server/scripts/deploy-webhook.js",
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots",
-    "test:lighthouse": "lhci autorun",
-    "lighthouse:badge": "node scripts/lighthouse-badge.js"
+    "test:lighthouse": "lhci autorun && node scripts/lighthouse-badge.js --report",
+    "lighthouse:badge": "node scripts/lighthouse-badge.js --write-badges"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

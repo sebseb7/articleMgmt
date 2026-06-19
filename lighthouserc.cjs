@@ -2,9 +2,9 @@
 module.exports = {
   ci: {
     collect: {
-      startServerCommand: 'npm run dev:test',
+      startServerCommand: 'npm run start:lighthouse',
       startServerReadyPattern: 'Local:',
-      startServerReadyTimeout: 120_000,
+      startServerReadyTimeout: 300_000,
       url: ['http://localhost:4993/'],
       numberOfRuns: 1,
       settings: {

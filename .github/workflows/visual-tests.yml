@@ -52,18 +52,20 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      - name: Resolve Playwright Chromium path
+        id: playwright-chromium
+        run: echo "path=$(node --input-type=module -e "import { chromium } from '@playwright/test'; console.log(chromium.executablePath())")" >> $GITHUB_OUTPUT
+
       - name: Run visual tests
         run: npm run test:visual
         env:
           CI: true
 
-      - name: Install Chrome for Lighthouse
-        run: sudo apt-get update && sudo apt-get install -y google-chrome-stable
-
       - name: Run Lighthouse
         run: npm run test:lighthouse
         env:
           CI: true
+          CHROME_PATH: ${{ steps.playwright-chromium.outputs.path }}
 
       - name: Generate Lighthouse badge
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && !env.ACT }}

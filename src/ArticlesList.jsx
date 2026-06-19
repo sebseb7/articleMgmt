@@ -9,7 +9,8 @@ export default class ArticlesList extends PureComponent {
   render() {
     const {
       articles, pageSize, barcodeCapture, barcodeCaptureBuffer,
-      onStartBarcodeCapture, onEdit, onDelete,
+      printers, printingKey,
+      onStartBarcodeCapture, onEdit, onDelete, onPrintPrice,
     } = this.props;
     const visibleRows = isAllPageSize(pageSize) ? Math.max(articles.length, 1) : pageSize;
     const tableMinHeight = TABLE_HEADER_HEIGHT + visibleRows * TABLE_ROW_HEIGHT;
@@ -27,9 +28,12 @@ export default class ArticlesList extends PureComponent {
             articles={articles}
             barcodeCapture={barcodeCapture}
             barcodeCaptureBuffer={barcodeCaptureBuffer}
+            printers={printers}
+            printingKey={printingKey}
             onStartBarcodeCapture={onStartBarcodeCapture}
             onEdit={onEdit}
             onDelete={onDelete}
+            onPrintPrice={onPrintPrice}
           />
         </Suspense>
       </Box>

@@ -8,8 +8,9 @@ export default class ArticlesPaper extends PureComponent {
   render() {
     const {
       articles, total, page, pageSize, loading, search, isMobile, missingBarcodeOnly,
-      categoryFilters, categoryCounts, barcodeCapture, barcodeCaptureBuffer,
-      onStartBarcodeCapture, onEdit, onDelete, onPageChange, onPageSizeChange,
+      categoryFilters, categoryCounts,
+      barcodeCapture, barcodeCaptureBuffer, printers, printingKey,
+      onStartBarcodeCapture, onEdit, onDelete, onPrintPrice, onPageChange, onPageSizeChange,
     } = this.props;
     const categoryLabel = formatCategoryFilterLabel(categoryCounts, categoryFilters);
     const hasCategoryFilter = categoryFilters.length > 0;
@@ -60,9 +61,12 @@ export default class ArticlesPaper extends PureComponent {
           pageSize={pageSize}
           barcodeCapture={barcodeCapture}
           barcodeCaptureBuffer={barcodeCaptureBuffer}
+          printers={printers}
+          printingKey={printingKey}
           onStartBarcodeCapture={onStartBarcodeCapture}
           onEdit={onEdit}
           onDelete={onDelete}
+          onPrintPrice={onPrintPrice}
         />
         <TableNavigation
           edge="bottom"

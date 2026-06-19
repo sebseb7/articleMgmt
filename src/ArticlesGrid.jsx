@@ -20,7 +20,7 @@ import {
 import { hasUuid } from './uuid.js';
 import NewBadge from './NewBadge.jsx';
 import BarcodeAssignButton from './BarcodeAssignButton.jsx';
-import { money } from './articleTableUtils.js';
+import PriceWithPrint from './PriceWithPrint.jsx';
 import { fontFamily, monoFontFamily } from './fonts.js';
 
 ModuleRegistry.registerModules([
@@ -32,7 +32,7 @@ ModuleRegistry.registerModules([
 ]);
 
 const ARTICLE_ROW_HEIGHT = 52;
-const NON_EXPAND_CLICK_COLUMNS = new Set(['edit', 'delete', 'thumb']);
+const NON_EXPAND_CLICK_COLUMNS = new Set(['edit', 'delete', 'thumb', 'price']);
 const DETAIL_HEADER_HEIGHT = 52;
 const DETAIL_VARIATION_ROW_HEIGHT = 41;
 const DETAIL_VERTICAL_PADDING = 24;
@@ -215,10 +215,20 @@ class CategoryCellRenderer extends Component {
 class PriceCellRenderer extends Component {
   render() {
     const { article } = this.props.data;
+    const { context } = this.props;
     const variations = article.variations || [];
-    return variations.length > 0
-      ? <Chip size="small" variant="outlined" label={`${variations.length} variations`} />
-      : <span>{money(article.price)}</span>;
+    if (variations.length > 0) {
+      return <Chip size="small" variant="outlined" label={`${variations.length} variations`} />;
+    }
+    return (
+      <PriceWithPrint
+        price={article.price}
+        printKey={`article-${article.id}`}
+        printerConnected={context.printerConnected}
+        onPrintPrice={context.onPrintPrice}
+        printing={context.printingKey === `article-${article.id}`}
+      />
+    );
   }
 }
 
@@ -296,7 +306,15 @@ class VariationsDetailRenderer extends Component {
                     {!hasUuid(v.variant_uuid) && <NewBadge />}
                   </Box>
                 </TableCell>
-                <TableCell align="right">{money(v.price)}</TableCell>
+                <TableCell align="right">
+                  <PriceWithPrint
+                    price={v.price}
+                    printKey={`variation-${article.id}-${v.id}`}
+                    printerConnected={context.printerConnected}
+                    onPrintPrice={context.onPrintPrice}
+                    printing={context.printingKey === `variation-${article.id}-${v.id}`}
+                  />
+                </TableCell>
                 <TableCell align="right">{v.quantity ?? '—'}</TableCell>
                 <TableCell align="right">{v.low_threshold ?? '—'}</TableCell>
                 <TableCell>
@@ -332,9 +350,12 @@ export default class ArticlesGrid extends PureComponent {
     onStartBarcodeCapture: (articleId, variationId) => (
       this.props.onStartBarcodeCapture(articleId, variationId)
     ),
+    onPrintPrice: (price, printKey) => this.props.onPrintPrice?.(price, printKey),
     isExpanded: (id) => this.isExpanded(id),
     barcodeCapture: null,
     barcodeCaptureBuffer: '',
+    printerConnected: false,
+    printingKey: null,
   };
 
   columnDefs = [
@@ -449,9 +470,20 @@ export default class ArticlesGrid extends PureComponent {
     const barcodeChanged =
       prevProps.barcodeCapture !== this.props.barcodeCapture
       || prevProps.barcodeCaptureBuffer !== this.props.barcodeCaptureBuffer;
+    const printUiChanged =
+      prevProps.printers !== this.props.printers
+      || prevProps.printingKey !== this.props.printingKey;
     const expandedChanged = prevState.expanded !== this.state.expanded;
     if (barcodeChanged) {
       this.refreshBarcodeCells();
+    }
+    if (printUiChanged) {
+      this.gridApi?.refreshCells({ force: true, columns: ['price'] });
+      const detailNodes = [];
+      this.gridApi?.forEachNode((node) => {
+        if (node.data?.kind === 'detail') detailNodes.push(node);
+      });
+      if (detailNodes.length) this.gridApi?.redrawRows({ rowNodes: detailNodes });
     }
     if (expandedChanged) {
       this.gridApi?.resetRowHeights();
@@ -528,10 +560,13 @@ export default class ArticlesGrid extends PureComponent {
   };
 
   render() {
-    const { barcodeCapture, barcodeCaptureBuffer } = this.props;
+    const { barcodeCapture, barcodeCaptureBuffer, printers, printingKey, onPrintPrice } = this.props;
 
     this.gridContext.barcodeCapture = barcodeCapture;
     this.gridContext.barcodeCaptureBuffer = barcodeCaptureBuffer;
+    this.gridContext.printerConnected = printers.length > 0;
+    this.gridContext.onPrintPrice = onPrintPrice;
+    this.gridContext.printingKey = printingKey;
 
     return (
       <Box

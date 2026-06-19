@@ -210,6 +210,16 @@ export const api = {
   deleteToken: (id) =>
     fetch(`/api/tokens/${id}`, { method: 'DELETE', ...credentials }).then(json),
 
+  listPrinters: () => fetch('/api/v1/printer/printers', credentials).then(json),
+
+  printZpl: (printerId, zpl) =>
+    fetch('/api/v1/printer/print', {
+      method: 'POST',
+      ...credentials,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ printerId, zpl }),
+    }).then(json),
+
   exportCsv: async () => {
     const r = await fetch('/api/export', credentials);
     if (r.status === 401) {

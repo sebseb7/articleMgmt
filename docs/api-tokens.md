@@ -197,6 +197,10 @@ curl -X POST -H "Authorization: Bearer amt_…" \
 
 The same result is broadcast on the `print_result` SSE event to all subscribed clients.
 
+#### Web UI print button
+
+When a printer agent is online (header icon green), the article table shows a small print icon next to each article or variation price. Clicking it builds a **25×13 mm** ZPL label (`src/buildZpl.js`, same layout as the ZebraLabel Android app) and calls `POST /api/v1/print` using the session cookie. Price text uses German formatting: `12,34 €`.
+
 ---
 
 ## `printer` scope — printer agent

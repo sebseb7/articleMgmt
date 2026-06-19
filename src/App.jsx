@@ -11,9 +11,10 @@ import ImportProgressOverlay from './ImportProgressOverlay.jsx';
 import { theme } from './theme.js';
 import {
   DEFAULT_PAGE_SIZE, effectiveSearchQuery, categoryFilterKey, categoryFiltersEqual, mediaQueryString,
-  isBarcodeLike,
+  isBarcodeLike, money,
 } from './articleTableUtils.js';
 import { connectPrinterEvents } from './printerEvents.js';
+import { buildSmallLabelZpl } from './buildZpl.js';
 
 class App extends Component {
   state = {
@@ -46,6 +47,7 @@ class App extends Component {
     changelogLoading: false,
     importProgress: null,
     printers: [],
+    printingKey: null,
   };
 
   searchRef = createRef();
@@ -318,6 +320,25 @@ class App extends Component {
 
   closeTokensDialog = () => {
     this.setState({ tokensOpen: false });
+  };
+
+  handlePrintPrice = async (price, printKey) => {
+    const { printers } = this.state;
+    if (!printers.length) {
+      this.notify('No printer connected', 'warning');
+      return;
+    }
+    this.setState({ printingKey: printKey });
+    try {
+      const zpl = buildSmallLabelZpl(price);
+      const result = await api.printZpl(printers[0].id, zpl);
+      const name = printers[0].name;
+      this.notify(`Printed ${money(price)} on ${name} (job ${result.jobId})`);
+    } catch (e) {
+      if (!this.handleAuthError(e)) this.notify(e.message, 'error');
+    } finally {
+      this.setState({ printingKey: null });
+    }
   };
 
   handleChangelogPageSizeChange = (nextPageSize) => {
@@ -675,7 +696,7 @@ class App extends Component {
       dialog, missingBarcodeDialog, categoriesOpen, tokensOpen, missingListWantsToOpen, missingListOpen, categories, isMobile,
       barcodeCapture, barcodeCaptureBuffer,
       changelogEntries, changelogTotal, changelogPage, changelogPageSize, changelogLoading,
-      importProgress, printers,
+      importProgress, printers, printingKey,
     } = this.state;
 
     return (
@@ -706,6 +727,8 @@ class App extends Component {
           onExport={this.handleExport}
           onFlushDb={this.handleFlushDb}
           printers={printers}
+          printingKey={printingKey}
+          onPrintPrice={this.handlePrintPrice}
           articles={articles}
           total={total}
           page={page}

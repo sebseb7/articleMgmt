@@ -8,8 +8,8 @@ export default class ArticlesPanel extends PureComponent {
     const {
       articles, total, page, pageSize, loading, search, isMobile,
       missingBarcodeOnly, categoryFilters, categoryCounts,
-      barcodeCapture, barcodeCaptureBuffer,
-      onStartBarcodeCapture, onEditArticle, onDeleteArticle,
+      barcodeCapture, barcodeCaptureBuffer, printers, printingKey,
+      onStartBarcodeCapture, onEditArticle, onDeleteArticle, onPrintPrice,
       onPageChange, onPageSizeChange,
     } = this.props;
 
@@ -31,6 +31,9 @@ export default class ArticlesPanel extends PureComponent {
           onStartBarcodeCapture={onStartBarcodeCapture}
           onEdit={onEditArticle}
           onDelete={onDeleteArticle}
+          onPrintPrice={onPrintPrice}
+          printers={printers}
+          printingKey={printingKey}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
         />

@@ -17,7 +17,7 @@ export default class AppShell extends PureComponent {
       onAddCategoryFilter, onRemoveCategoryFilter,
       onOpenCategories, onNewArticle,
       onImportFile, onExport, onFlushDb, onNavigate, onOpenTokens,
-      missingListOpen, printers,
+      missingListOpen, printers, printingKey, onPrintPrice,
       articles, total, page, pageSize, loading, search,
       barcodeCapture, barcodeCaptureBuffer,
       onStartBarcodeCapture, onEditArticle, onDeleteArticle,
@@ -86,6 +86,9 @@ export default class AppShell extends PureComponent {
             onStartBarcodeCapture={onStartBarcodeCapture}
             onEditArticle={onEditArticle}
             onDeleteArticle={onDeleteArticle}
+            onPrintPrice={onPrintPrice}
+            printers={printers}
+            printingKey={printingKey}
             onPageChange={onPageChange}
             onPageSizeChange={onPageSizeChange}
           />

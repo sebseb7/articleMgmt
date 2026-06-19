@@ -14,6 +14,17 @@ export async function openNavigateMenu(page) {
   await page.getByRole('menu').waitFor();
 }
 
+export async function openSettingsMenu(page) {
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('menu').waitFor();
+}
+
+export async function openTokensDialog(page) {
+  await openSettingsMenu(page);
+  await page.getByRole('menuitem', { name: 'API tokens' }).click();
+  await page.getByRole('heading', { name: 'API tokens' }).waitFor();
+}
+
 export async function openMissingListDialog(page) {
   await openNavigateMenu(page);
   await page.getByRole('menuitem', { name: 'Missing barcodes' }).click();
@@ -65,4 +76,58 @@ export async function mockConnectedPrinter(page, printer = VISUAL_TEST_PRINTER) 
 export async function waitForPrinterConnected(page, printerName = VISUAL_TEST_PRINTER.name) {
   await page.getByLabel(`Printer connected: ${printerName}`).waitFor();
   await page.getByRole('button', { name: 'Print price label' }).first().waitFor();
+}
+
+export const VISUAL_TEST_TOKEN = {
+  id: 1,
+  name: 'Visual test token',
+  token: 'amt_visualRegressionTestToken12',
+  tokenPrefix: 'amt_visualRe…',
+  scopes: ['read'],
+};
+
+/** Deterministic token API so created-token text and QR snapshots stay stable. */
+export async function mockDeterministicTokenApi(page, token = VISUAL_TEST_TOKEN) {
+  let list = [];
+
+  await page.route('**/api/tokens**', async (route) => {
+    const req = route.request();
+    const { pathname } = new URL(req.url());
+
+    if (req.method() === 'GET' && pathname.endsWith('/api/tokens')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(list) });
+      return;
+    }
+
+    if (req.method() === 'POST' && pathname.endsWith('/api/tokens')) {
+      const body = req.postDataJSON();
+      const created = {
+        ...token,
+        name: body.name || token.name,
+        scopes: body.scopes || token.scopes,
+      };
+      list = [{
+        id: created.id,
+        name: created.name,
+        tokenPrefix: created.tokenPrefix,
+        scopes: created.scopes,
+        createdAt: '2026-01-01T12:00:00.000Z',
+        lastUsedAt: null,
+      }];
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(created),
+      });
+      return;
+    }
+
+    await route.continue();
+  });
+}
+
+export async function createVisualTestToken(page, name = VISUAL_TEST_TOKEN.name) {
+  await page.getByLabel('Name').fill(name);
+  await page.getByRole('button', { name: 'Create token' }).click();
+  await page.getByText('Copy this token now').waitFor();
 }

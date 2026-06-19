@@ -6,6 +6,9 @@ import {
   openMissingListDialog,
   mockConnectedPrinter,
   waitForPrinterConnected,
+  mockDeterministicTokenApi,
+  openTokensDialog,
+  createVisualTestToken,
 } from './helpers.js';
 
 const DEMO_UNKNOWN_BARCODE = '2342000099999';
@@ -104,6 +107,22 @@ test.describe('visual regression', () => {
     await page.getByText('Cappuccino').click();
     await page.getByRole('button', { name: 'Print price label' }).nth(3).waitFor();
     await expect(page).toHaveScreenshot('home-printer-connected.png', { fullPage: true });
+  });
+
+  test('tokens dialog after create', async ({ page }) => {
+    await mockDeterministicTokenApi(page);
+    await openTokensDialog(page);
+    await createVisualTestToken(page);
+    await expect(page).toHaveScreenshot('dialog-tokens-created.png', { fullPage: true });
+  });
+
+  test('token qr dialog', async ({ page }) => {
+    await mockDeterministicTokenApi(page);
+    await openTokensDialog(page);
+    await createVisualTestToken(page);
+    await page.getByRole('button', { name: 'Show token as QR code' }).click();
+    await page.getByRole('heading', { name: 'Token QR code' }).waitFor();
+    await expect(page).toHaveScreenshot('dialog-token-qr.png', { fullPage: true });
   });
 
   test.describe('mobile', () => {

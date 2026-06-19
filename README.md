@@ -1,6 +1,6 @@
 # SumUp Article Editor
 
-![SumUp Article Editor](tests/screenshots/visual.spec.js-snapshots/dialog-new-article-variations.png)
+<img src="tests/screenshots/visual.spec.js-snapshots/dialog-new-article-variations.png" alt="SumUp Article Editor" width="25%" />
 
 [![Visual tests](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml/badge.svg)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 [![Lighthouse performance](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/performance.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
@@ -8,7 +8,7 @@
 [![Lighthouse best practices](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/best-practices.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 [![Lighthouse SEO](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/seo.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 
-![Lighthouse page capture](lighthouse-badges/screenshot.webp)
+<img src="lighthouse-badges/screenshot.webp" alt="Lighthouse page capture" width="25%" />
 
 Import, manage, and re-export SumUp item CSVs. Vite + React + MUI frontend, Express + better-sqlite3 backend.
 

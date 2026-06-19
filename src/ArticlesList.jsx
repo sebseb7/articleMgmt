@@ -1,8 +1,9 @@
 import { PureComponent, lazy, Suspense } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import { TABLE_HEADER_HEIGHT, TABLE_ROW_HEIGHT, isAllPageSize } from './articleTableUtils.js';
+import { importArticlesGrid } from './lazyChunks.js';
 
-const ArticlesGrid = lazy(() => import('./ArticlesGrid.jsx'));
+const ArticlesGrid = lazy(importArticlesGrid);
 
 /** Grid only — no pagination props, so page changes do not re-render the table. */
 export default class ArticlesList extends PureComponent {

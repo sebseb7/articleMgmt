@@ -4,8 +4,9 @@ import { SnackbarProvider } from 'notistack';
 import ModalScrollLock from './ModalScrollLock.jsx';
 import { api } from './api.js';
 import Login from './Login.jsx';
+import { importApp } from './lazyChunks.js';
 
-const App = lazy(() => import('./App.jsx'));
+const App = lazy(importApp);
 
 export default class Root extends Component {
   state = {

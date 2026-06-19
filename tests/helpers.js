@@ -35,3 +35,34 @@ export async function stabilizePage(page) {
     `,
   });
 }
+
+const VISUAL_TEST_PRINTER = {
+  id: 'visual-test-printer',
+  name: 'zebra-counter',
+  connectedAt: '2026-01-01T12:00:00.000Z',
+};
+
+/** Stub printer SSE so the header and price cells show connected print icons. */
+export async function mockConnectedPrinter(page, printer = VISUAL_TEST_PRINTER) {
+  const sseBody = [
+    ': connected\n\n',
+    `event: printers\ndata: ${JSON.stringify({ printers: [printer] })}\n\n`,
+  ].join('');
+
+  await page.route('**/api/v1/printer/events**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      headers: {
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+      },
+      body: sseBody,
+    });
+  });
+}
+
+export async function waitForPrinterConnected(page, printerName = VISUAL_TEST_PRINTER.name) {
+  await page.getByLabel(`Printer connected: ${printerName}`).waitFor();
+  await page.getByRole('button', { name: 'Print price label' }).first().waitFor();
+}

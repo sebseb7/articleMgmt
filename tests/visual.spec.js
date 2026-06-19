@@ -4,6 +4,8 @@ import {
   stabilizePage,
   openMissingBarcodeDialog,
   openMissingListDialog,
+  mockConnectedPrinter,
+  waitForPrinterConnected,
 } from './helpers.js';
 
 const DEMO_UNKNOWN_BARCODE = '2342000099999';
@@ -92,6 +94,16 @@ test.describe('visual regression', () => {
   test('missing barcodes list dialog', async ({ page }) => {
     await openMissingListDialog(page);
     await expect(page).toHaveScreenshot('dialog-missing-list.png', { fullPage: true });
+  });
+
+  test('home with connected printer', async ({ page }) => {
+    await mockConnectedPrinter(page);
+    await page.reload();
+    await waitForArticlesLoaded(page);
+    await waitForPrinterConnected(page);
+    await page.getByText('Cappuccino').click();
+    await page.getByRole('button', { name: 'Print price label' }).nth(3).waitFor();
+    await expect(page).toHaveScreenshot('home-printer-connected.png', { fullPage: true });
   });
 
   test.describe('mobile', () => {

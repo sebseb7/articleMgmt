@@ -1,6 +1,6 @@
 # SumUp Article Editor
 
-<img src="tests/screenshots/visual.spec.js-snapshots/dialog-new-article-variations.png" alt="SumUp Article Editor" width="25%" />
+<img src="tests/screenshots/visual.spec.js-snapshots/dialog-new-article-variations.png" alt="SumUp Article Editor" width="70%" />
 
 [![Visual tests](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml/badge.svg)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)
 [![Lighthouse performance](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/sebseb7/articleMgmt/main/lighthouse-badges/performance.json)](https://github.com/sebseb7/articleMgmt/actions/workflows/visual-tests.yml)

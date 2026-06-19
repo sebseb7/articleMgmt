@@ -17,6 +17,7 @@
     "user": "node server/scripts/user.js",
     "seed": "node server/scripts/seed.js",
     "seed:fresh": "node server/scripts/seed.js --fresh",
+    "webhook": "node server/scripts/deploy-webhook.js",
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots"
   },

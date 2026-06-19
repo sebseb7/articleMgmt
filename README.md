@@ -12,10 +12,11 @@ Import, manage, and re-export SumUp item CSVs. Vite + React + MUI frontend, Expr
 
 ## Ports
 
-| Service  | Port |
-|----------|------|
-| Backend  | 3991 |
-| Frontend | 4991 |
+| Service         | Port |
+|-----------------|------|
+| Backend         | 3991 |
+| Deploy webhook  | 3992 |
+| Frontend        | 4991 |
 
 ```bash
 npm install
@@ -54,6 +55,15 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    location /deploy/ {
+        proxy_pass http://127.0.0.1:3992/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -68,6 +78,25 @@ server {
 ```
 
 Replace `articles.example.com` and `root` with your hostname and deploy path.
+
+### GitHub deploy webhook
+
+Runs beside the API on port 3992. On a signed `push` to `main`/`master` it runs:
+
+`git pull && npm i . && pm2 start sumupbackend && npm run build`
+
+```bash
+# .env
+GITHUB_WEBHOOK_SECRET=…   # same secret as in the GitHub webhook settings
+WEBHOOK_PORT=3992         # optional
+
+npm run webhook
+# or: pm2 start server/scripts/deploy-webhook.js --name sumup-webhook
+```
+
+In GitHub → **Settings → Webhooks**, add payload URL `https://articles.example.com/deploy/` (content type: `application/json`, secret: your `GITHUB_WEBHOOK_SECRET`, events: **Just the push event**).
+
+Override the deploy shell with `DEPLOY_COMMAND` if needed.
 
 ### Development behind nginx
 

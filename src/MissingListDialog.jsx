@@ -2,11 +2,12 @@ import { Component, createRef } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
-  Box, Typography, CircularProgress,
+  Box, Typography, CircularProgress, Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
+import SearchIcon from '@mui/icons-material/Search';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { api } from './api.js';
@@ -50,11 +51,10 @@ export default class MissingListDialog extends Component {
     error: '',
     loading: false,
     forceBarcodeLabelShrink: true,
-    productNames: {},
+    lookupLoading: {},
   };
 
   loadSeq = 0;
-  lookupSeq = 0;
 
   componentDidUpdate(prevProps) {
     if (this.props.wantsToOpen && !prevProps.wantsToOpen) {
@@ -76,12 +76,12 @@ export default class MissingListDialog extends Component {
       deletingBarcode: null,
       loading: true,
       forceBarcodeLabelShrink: true,
-      productNames: {},
+      lookupLoading: {},
     });
     try {
       const entries = await api.listMissingBarcodes();
       if (seq !== this.loadSeq || !this.props.wantsToOpen) return;
-      this.setState({ entries, loading: false }, () => this.lookupProductNames(entries));
+      this.setState({ entries, loading: false });
       this.props.onOpen();
     } catch (e) {
       if (seq !== this.loadSeq || !this.props.wantsToOpen) return;
@@ -105,49 +105,49 @@ export default class MissingListDialog extends Component {
   reload = async () => {
     try {
       const entries = await api.listMissingBarcodes();
-      this.setState({ entries, error: '' }, () => this.lookupProductNames(entries));
+      this.setState({ entries, error: '' });
     } catch (e) {
       this.setState({ error: e.message });
     }
   };
 
-  lookupProductNames = (entries) => {
-    const withoutNote = entries.filter((entry) => !entry.note?.trim());
-    if (!withoutNote.length) return;
+  setLookupLoading = (barcode, loading) => {
+    this.setState((prev) => {
+      const lookupLoading = { ...prev.lookupLoading };
+      if (loading) {
+        lookupLoading[barcode] = true;
+      } else {
+        delete lookupLoading[barcode];
+      }
+      return { lookupLoading };
+    });
+  };
 
-    const seq = ++this.lookupSeq;
-    const pending = Object.fromEntries(
-      withoutNote.map((entry) => [entry.barcode, { loading: true, name: null, error: '' }]),
-    );
-    this.setState((prev) => ({
-      productNames: { ...prev.productNames, ...pending },
-    }));
-
-    for (const entry of withoutNote) {
-      api.lookupMissingProductName(entry.barcode)
-        .then(({ productName }) => {
-          if (seq !== this.lookupSeq) return;
-          this.setState((prev) => ({
-            productNames: {
-              ...prev.productNames,
-              [entry.barcode]: { loading: false, name: productName, error: '' },
-            },
-          }));
-        })
-        .catch((e) => {
-          if (seq !== this.lookupSeq) return;
-          this.setState((prev) => ({
-            productNames: {
-              ...prev.productNames,
-              [entry.barcode]: { loading: false, name: null, error: e.message },
-            },
-          }));
-        });
+  handleLookupProduct = async (entry) => {
+    const { barcode } = entry;
+    this.setState({ error: '' });
+    this.setLookupLoading(barcode, true);
+    try {
+      const { productName } = await api.lookupMissingProductName(barcode);
+      if (!productName) {
+        this.setState({ error: `No product name found for ${barcode}.` });
+        return;
+      }
+      await api.upsertMissingBarcode(barcode, productName);
+      await this.reload();
+    } catch (e) {
+      if (this.isCatalogBarcodeError(e)) {
+        await this.reload();
+        return;
+      }
+      this.setState({ error: e.message });
+    } finally {
+      this.setLookupLoading(barcode, false);
     }
   };
 
   renderNoteCell = (entry) => {
-    const { editingBarcode, editNote, productNames } = this.state;
+    const { editingBarcode, editNote, lookupLoading } = this.state;
 
     if (editingBarcode === entry.barcode) {
       return (
@@ -169,28 +169,27 @@ export default class MissingListDialog extends Component {
       );
     }
 
-    if (entry.note) {
-      return entry.note;
-    }
-
-    const lookup = productNames[entry.barcode];
-    if (lookup?.loading) {
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-          <CircularProgress size={14} />
-          <Typography variant="body2" color="text.secondary">Looking up product…</Typography>
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {entry.note || <Typography component="span" color="text.secondary">—</Typography>}
         </Box>
-      );
-    }
-    if (lookup?.name) {
-      return (
-        <Typography variant="body2" color="text.secondary" fontStyle="italic">
-          {lookup.name}
-        </Typography>
-      );
-    }
-
-    return <Typography component="span" color="text.secondary">—</Typography>;
+        <Tooltip title="Look up product name">
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => this.handleLookupProduct(entry)}
+              disabled={!!lookupLoading[entry.barcode]}
+              aria-label="Look up product name"
+            >
+              {lookupLoading[entry.barcode]
+                ? <CircularProgress size={16} />
+                : <SearchIcon fontSize="small" />}
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Box>
+    );
   };
 
   findEntry = (barcode) => {

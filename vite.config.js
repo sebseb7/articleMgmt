@@ -7,6 +7,27 @@ import react from '@vitejs/plugin-react';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nodeModules = /node_modules/;
 
+const prerenderActive = 'VITE_LOGIN_PRERENDER_ACTIVE';
+
+const ssrNoExternal = [
+  '@mui/material',
+  '@mui/icons-material',
+  '@mui/system',
+  '@mui/utils',
+  '@emotion/react',
+  '@emotion/styled',
+  '@emotion/cache',
+  '@emotion/server',
+  '@emotion/serialize',
+  '@emotion/utils',
+  '@emotion/hash',
+  '@emotion/memoize',
+  '@emotion/is-prop-valid',
+  '@emotion/unitless',
+  '@emotion/sheet',
+  '@emotion/use-insertion-effect-with-fallbacks',
+];
+
 function loginPrerenderPlugin() {
   return {
     name: 'login-prerender',
@@ -19,12 +40,23 @@ function loginPrerenderPlugin() {
       },
     },
     async closeBundle() {
+      if (process.env[prerenderActive]) return;
+
       const indexPath = path.resolve(__dirname, 'dist/index.html');
       if (!fs.existsSync(indexPath)) return;
 
+      process.env[prerenderActive] = '1';
       const server = await createServer({
-        configFile: path.resolve(__dirname, 'vite.config.js'),
-        server: { middlewareMode: true },
+        root: __dirname,
+        mode: 'production',
+        plugins: [react()],
+        resolve: {
+          dedupe: ['react', 'react-dom', '@emotion/react', '@emotion/cache', '@emotion/styled'],
+        },
+        ssr: {
+          noExternal: ssrNoExternal,
+        },
+        server: { middlewareMode: true, hmr: false },
         appType: 'custom',
       });
 
@@ -34,6 +66,7 @@ function loginPrerenderPlugin() {
         fs.writeFileSync(indexPath, injectLoginShell(html));
       } finally {
         await server.close();
+        delete process.env[prerenderActive];
       }
     },
   };
@@ -41,8 +74,11 @@ function loginPrerenderPlugin() {
 
 export default defineConfig({
   plugins: [react(), loginPrerenderPlugin()],
+  resolve: {
+    dedupe: ['react', 'react-dom', '@emotion/react', '@emotion/cache', '@emotion/styled'],
+  },
   ssr: {
-    noExternal: ['@mui/material', '@mui/icons-material', '@mui/system', '@mui/utils', '@emotion/react', '@emotion/styled', '@emotion/cache', '@emotion/server'],
+    noExternal: ssrNoExternal,
   },
   build: {
     chunkSizeWarningLimit: 700,

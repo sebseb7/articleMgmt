@@ -43,6 +43,9 @@ export async function stabilizePage(page) {
         -webkit-font-smoothing: none !important;
         -moz-osx-font-smoothing: unset !important;
       }
+      [data-visual-test-exclude] {
+        visibility: hidden !important;
+      }
     `,
   });
 }

@@ -2,7 +2,7 @@ import { Component, createRef } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
-  Box, Typography, CircularProgress, Tooltip,
+  Box, Typography, CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/EditOutlined';
@@ -174,20 +174,16 @@ export default class MissingListDialog extends Component {
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {entry.note || <Typography component="span" color="text.secondary">—</Typography>}
         </Box>
-        <Tooltip title="Look up product name">
-          <span>
-            <IconButton
-              size="small"
-              onClick={() => this.handleLookupProduct(entry)}
-              disabled={!!lookupLoading[entry.barcode]}
-              aria-label="Look up product name"
-            >
-              {lookupLoading[entry.barcode]
-                ? <CircularProgress size={16} />
-                : <SearchIcon fontSize="small" />}
-            </IconButton>
-          </span>
-        </Tooltip>
+        <IconButton
+          size="small"
+          onClick={() => this.handleLookupProduct(entry)}
+          disabled={!!lookupLoading[entry.barcode]}
+          aria-label="Look up product name"
+        >
+          {lookupLoading[entry.barcode]
+            ? <CircularProgress size={16} />
+            : <SearchIcon fontSize="small" />}
+        </IconButton>
       </Box>
     );
   };

@@ -83,7 +83,7 @@ export default class Login extends Component {
             value={username}
             onChange={(e) => this.setState({ username: e.target.value })}
             sx={{ mb: 2 }}
-            slotProps={withNoAutofill()}
+            slotProps={withNoAutofill({ inputLabel: { shrink: true } })}
           />
           <TextField
             label="Password"
